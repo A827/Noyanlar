@@ -30,7 +30,7 @@
   <main class="wrap">
     <div class="page-head">
       <h1>Ödeme Planı</h1>
-      <span class="badge" id="currencyBadge">Para Birimi: TRY (₺)</span>
+      <span class="badge" id="currencyBadge">Para Birimi: GBP (£)</span>
     </div>
 
     <div class="grid">
@@ -40,10 +40,9 @@
           <div class="field">
             <label>Para Birimi</label>
             <select id="currency">
-              <option value="TRY" selected>TRY (₺)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="USD">USD ($)</option>
+              <option value="GBP" selected>GBP (£)</option>
               <option value="EUR">EUR (€)</option>
+              <option value="USD">USD ($)</option>
             </select>
           </div>
 
@@ -59,9 +58,9 @@
 
         <div id="presets" class="presets">
           <span class="muted">Hazır Planlar:</span>
-          <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %8</button>
-          <button class="chip" data-sale="75000" data-down="20000" data-apr="5.5" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %5.5</button>
-          <button class="chip" data-sale="75000" data-down="20000" data-apr="3.75" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %3.75</button>
+          <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">£75,000 • £20,000 • 120 ay @ %8</button>
+          <button class="chip" data-sale="75000" data-down="20000" data-apr="5.5" data-term="120">£75,000 • £20,000 • 120 ay @ %5.5</button>
+          <button class="chip" data-sale="75000" data-down="20000" data-apr="3.75" data-term="120">£75,000 • £20,000 • 120 ay @ %3.75</button>
         </div>
 
         <div id="inputs" class="inputs-grid"></div>
@@ -74,7 +73,7 @@
 
         <p class="note">Not: Yıllık faiz oranı (APR) seçtiğiniz bileşik döneme göre periyot başına orana dönüştürülür.</p>
 
-        <!-- TABLE (moved below note) -->
+        <!-- TABLE -->
         <div class="table-wrap" id="scheduleWrap" style="display:none">
           <table>
             <thead>
@@ -92,22 +91,10 @@
       <!-- RIGHT: SUMMARY -->
       <aside class="card summary-card">
         <div class="stats">
-          <div class="stat">
-            <span>Aylık Taksit</span>
-            <strong id="primaryValue">—</strong>
-          </div>
-          <div class="stat">
-            <span>Kredi Tutarı</span>
-            <strong id="loanAmount">—</strong>
-          </div>
-          <div class="stat">
-            <span>Toplam Ödeme</span>
-            <strong id="totalPaid">—</strong>
-          </div>
-          <div class="stat">
-            <span>Tahmini Bitiş</span>
-            <strong id="payoffDate">—</strong>
-          </div>
+          <div class="stat"><span>Aylık Taksit</span><strong id="primaryValue">—</strong></div>
+          <div class="stat"><span>Kredi Tutarı</span><strong id="loanAmount">—</strong></div>
+          <div class="stat"><span>Toplam Ödeme</span><strong id="totalPaid">—</strong></div>
+          <div class="stat"><span>Tahmini Bitiş</span><strong id="payoffDate">—</strong></div>
         </div>
         <p class="muted" id="summary">Değerleri girip “Hesapla”ya basın.</p>
       </aside>

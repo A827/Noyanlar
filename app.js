@@ -1,6 +1,7 @@
 (function(){
-  const sym = { TRY:'₺', GBP:'£', USD:'$', EUR:'€' };
-  const fmt = (v, cur='TRY') =>
+  // Symbols only GBP/EUR/USD
+  const sym = { GBP:'£', EUR:'€', USD:'$' };
+  const fmt = (v, cur='GBP') =>
     isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
   const $ = id => document.getElementById(id);
 
@@ -20,18 +21,17 @@
   if ($('year')) $('year').textContent = new Date().getFullYear();
   if ($('printBtn')) $('printBtn').addEventListener('click', ()=> window.print());
 
-  // Render form fields with currency prefixes
   function renderFields(){
     inputsDiv.innerHTML = `
       <div class="field prefix-wrap">
         <label for="salePrice">Satış Fiyatı</label>
-        <span class="prefix" id="symSale">₺</span>
-        <input id="salePrice" type="number" step="0.01" placeholder="örn. 1.000.000" />
+        <span class="prefix" id="symSale">£</span>
+        <input id="salePrice" type="number" step="0.01" placeholder="örn. 75,000" />
       </div>
       <div class="field prefix-wrap">
         <label for="down">Peşinat</label>
-        <span class="prefix" id="symDown">₺</span>
-        <input id="down" type="number" step="0.01" placeholder="örn. 200.000" />
+        <span class="prefix" id="symDown">£</span>
+        <input id="down" type="number" step="0.01" placeholder="örn. 20,000" />
       </div>
       <div class="field">
         <label for="apr">Yıllık Faiz Oranı (%)</label>
@@ -56,6 +56,8 @@
     const sale = $('symSale'), down = $('symDown');
     if (sale) sale.textContent = s;
     if (down) down.textContent = s;
+    // update badge text too
+    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${s})`;
   }
 
   function collectValues(){
@@ -97,11 +99,7 @@
     });
   }
 
-  currencySel.addEventListener('change', ()=>{
-    const m = sym[currencySel.value] || '';
-    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${m})`;
-    updateCurrencySymbols();
-  });
+  currencySel.addEventListener('change', updateCurrencySymbols);
 
   $('calcBtn').addEventListener('click', ()=>{
     const cur = currencySel.value;
