@@ -1,13 +1,7 @@
-/* ======== Noyanlar Brand Tokens (easily tweak here) ======== */
+/* ======== Noyanlar Brand Tokens ======== */
 :root{
-  --brand:#8b1c23;       /* Primary brand (burgundy) */
-  --brand-2:#caa46a;     /* Accent (warm gold) */
-  --bg:#0f1118;          /* Page background */
-  --card:#131725;        /* Card background */
-  --ink:#e6e8ee;         /* Main text */
-  --muted:#9aa3b2;       /* Muted text */
-  --line:#26314a;        /* Borders */
-  --ok:#22c55e;          /* Positive */
+  --brand:#8b1c23; --brand-2:#caa46a;
+  --bg:#0f1118; --card:#131725; --ink:#e6e8ee; --muted:#9aa3b2; --line:#26314a;
 }
 
 /* ======== Base ======== */
@@ -77,20 +71,9 @@ input:focus,select:focus{border-color:#334155;box-shadow:0 0 0 3px #caa46a2e}
 .btn.secondary{background:#0b1020;color:#d1d5db;border:1px solid var(--line)}
 .btn.ghost{background:transparent;border:1px dashed var(--line);color:var(--ink)}
 .btn:disabled{opacity:.5}
-
 .btn-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
 
-/* ======== Tabs & Presets ======== */
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
-.tab{
-  padding:8px 12px;border-radius:10px;border:1px solid #1f2a44;
-  background:#0b1020;color:#cbd5e1;cursor:pointer
-}
-.tab.active{
-  background:linear-gradient(135deg,#1d283a,#0e1726);
-  border-color:#caa46a66;color:#e5e7eb;
-  box-shadow:inset 0 0 0 2px #caa46a2e
-}
+/* ======== Presets ======== */
 .presets{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 6px}
 .muted{color:var(--muted);font-size:12px}
 .chip{
