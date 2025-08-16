@@ -10,6 +10,7 @@
   const currencyBadge = byId('currencyBadge');
   const primaryLabel = byId('primaryLabel');
   const primaryValue = byId('primaryValue');
+  const loanAmountEl = byId('loanAmount');
   const totalInterest = byId('totalInterest');
   const totalPaid = byId('totalPaid');
   const payoffDate = byId('payoffDate');
@@ -23,13 +24,13 @@
     payment: {
       label: 'Monthly Payment',
       fields: [
-        {id:'price', label:'Price / Loan Amount', type:'number', step:'0.01', placeholder:'e.g. 55,000'},
-        {id:'down', label:'Down Payment (optional)', type:'number', step:'0.01', placeholder:'e.g. 20,000'},
+        {id:'salePrice', label:'Sale Price', type:'number', step:'0.01', placeholder:'e.g. 75,000'},
+        {id:'down', label:'Down Payment', type:'number', step:'0.01', placeholder:'e.g. 20,000'},
         {id:'apr', label:'Annual Interest Rate (%)', type:'number', step:'0.01', placeholder:'e.g. 5.5'},
         {id:'term', label:'Term (months)', type:'number', step:'1', placeholder:'e.g. 120'}
       ],
       compute: (v)=>{
-        const P = Math.max(0,(v.price||0) - (v.down||0));
+        const P = Math.max(0,(v.salePrice||0) - (v.down||0));
         const n = Number(v.term||0);
         const m = Number(compoundSel.value);
         const r = Number(v.apr||0)/100/m;
@@ -37,7 +38,7 @@
         if(n<=0) return null;
         if(r===0){ pay = P/n; }
         else { pay = P * r / (1 - Math.pow(1+r,-n)); }
-        return {payment:pay, principal:P, r, n};
+        return {payment:pay, principal:P, r, n, salePrice:Number(v.salePrice||0), down:Number(v.down||0)};
       }
     },
     loan: {
@@ -126,6 +127,7 @@
     `).join('');
     scheduleWrap.style.display='none';
     primaryValue.textContent = '—';
+    loanAmountEl.textContent = '—';
     totalInterest.textContent = '—';
     totalPaid.textContent = '—';
     payoffDate.textContent = '—';
@@ -157,7 +159,6 @@
     return {rows,totalI,totalP,balance:bal};
   }
 
-  // ✅ FIXED VERSION
   function toCSV(rows){
     const header = 'Period,Payment,Interest,Principal,Balance\n';
     const lines = rows.map(r=>[
@@ -176,6 +177,32 @@
     mode = t.dataset.mode; activeTab(t); renderFields();
   });
 
+  // Preset buttons: fill the form and calculate
+  const presets = document.getElementById('presets');
+  if (presets){
+    presets.addEventListener('click', (e)=>{
+      const b = e.target.closest('.chip');
+      if(!b) return;
+      // Switch to Monthly Payment mode
+      mode = b.dataset.mode || 'payment';
+      document.querySelectorAll('.tab').forEach(tab=>{
+        tab.classList.toggle('active', tab.dataset.mode===mode);
+      });
+      renderFields();
+      // Fill values
+      const sale = Number(b.dataset.sale||0);
+      const down = Number(b.dataset.down||0);
+      const apr  = Number(b.dataset.apr||0);
+      const term = Number(b.dataset.term||0);
+      byId('salePrice').value = sale;
+      byId('down').value = down;
+      byId('apr').value = apr;
+      byId('term').value = term;
+      // Trigger calculation
+      byId('calcBtn').click();
+    });
+  }
+
   currencySel.addEventListener('change', ()=>{
     currencyBadge.textContent = `Currency: ${currencySel.value} (${ {GBP:'£',USD:'$',EUR:'€',TRY:'₺'}[currencySel.value] })`;
   });
@@ -188,14 +215,15 @@
     if(!res){ summary.textContent = 'Please complete the fields with valid numbers.'; return; }
 
     if(mode==='payment'){
-      const {payment, principal:P, r, n} = res;
+      const {payment, principal:P, r, n, salePrice, down} = res;
       const sch = buildSchedule(P, r, n, payment);
       primaryValue.textContent = fmt(payment,cur);
+      loanAmountEl.textContent = fmt(P,cur);
       totalInterest.textContent = fmt(sch.totalI, cur);
       totalPaid.textContent = fmt(sch.totalI + sch.totalP, cur);
       const end = new Date(); end.setMonth(end.getMonth()+sch.rows.length);
       payoffDate.textContent = end.toLocaleDateString();
-      summary.textContent = `Loan ${fmt(P,cur)} over ${sch.rows.length} months at ${(r*Number(compoundSel.value)*100).toFixed(3)}% APR.`;
+      summary.textContent = `Sale ${fmt(salePrice,cur)}, Down ${fmt(down,cur)} → Loan ${fmt(P,cur)} over ${sch.rows.length} months at ${(r*Number(compoundSel.value)*100).toFixed(3)}% APR.`;
       scheduleBody.innerHTML = sch.rows.map(r=>`<tr><td>${r.k}</td><td>${fmt(r.pay,cur)}</td><td>${fmt(r.interest,cur)}</td><td>${fmt(r.principal,cur)}</td><td>${fmt(r.bal,cur)}</td></tr>`).join('');
       scheduleWrap.style.display='block';
       exportBtn.dataset.csv = toCSV(sch.rows);
@@ -204,6 +232,7 @@
     if(mode==='loan'){
       const {loan, payment:A, r, n} = res;
       primaryValue.textContent = fmt(loan,cur);
+      loanAmountEl.textContent = fmt(loan,cur);
       totalInterest.textContent = '—';
       totalPaid.textContent = '—';
       payoffDate.textContent = new Date(new Date().setMonth(new Date().getMonth()+n)).toLocaleDateString();
@@ -214,6 +243,7 @@
     if(mode==='rate'){
       const {apr, principal:P, payment:A, n} = res;
       primaryValue.textContent = (apr>0? apr.toFixed(4):'0.0000') + '% APR';
+      loanAmountEl.textContent = fmt(P, currencySel.value);
       totalInterest.textContent = '—'; totalPaid.textContent='—';
       payoffDate.textContent = new Date(new Date().setMonth(new Date().getMonth()+n)).toLocaleDateString();
       summary.textContent = `To pay ${fmt(A,cur)} for ${n} months on ${fmt(P,cur)}, APR is ~ ${apr.toFixed(4)}%.`;
@@ -223,6 +253,7 @@
     if(mode==='term'){
       const {n, principal:P, payment:A, r} = res;
       primaryValue.textContent = `${n} months`;
+      loanAmountEl.textContent = fmt(P, currencySel.value);
       totalInterest.textContent = '—'; totalPaid.textContent='—';
       payoffDate.textContent = new Date(new Date().setMonth(new Date().getMonth()+n)).toLocaleDateString();
       summary.textContent = `To pay ${fmt(P,cur)} with ${fmt(A,cur)} monthly at ${(r*Number(compoundSel.value)*100).toFixed(3)}% APR, you need ~${n} months.`;
@@ -243,5 +274,6 @@
     URL.revokeObjectURL(a.href);
   });
 
+  // Initial render
   renderFields();
 })();

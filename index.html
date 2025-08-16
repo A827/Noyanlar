@@ -44,6 +44,31 @@
           </div>
         </div>
 
+        <!-- Presets generated from your Excel sheets (assumed 120 months) -->
+        <div id="presets" class="presets">
+          <span class="muted">Presets:</span>
+          <button class="chip"
+                  data-mode="payment"
+                  data-sale="75000"
+                  data-down="20000"
+                  data-apr="8"
+                  data-term="120">₤75,000 • ₤20,000 • 120 mo @ 8%</button>
+
+          <button class="chip"
+                  data-mode="payment"
+                  data-sale="75000"
+                  data-down="20000"
+                  data-apr="5.5"
+                  data-term="120">₤75,000 • ₤20,000 • 120 mo @ 5.5%</button>
+
+          <button class="chip"
+                  data-mode="payment"
+                  data-sale="75000"
+                  data-down="20000"
+                  data-apr="3.75"
+                  data-term="120">₤75,000 • ₤20,000 • 120 mo @ 3.75%</button>
+        </div>
+
         <div id="inputs"></div>
 
         <div class="btn-row">
@@ -60,6 +85,10 @@
           <div class="stat">
             <h3 id="primaryLabel">Monthly Payment</h3>
             <div class="v" id="primaryValue">—</div>
+          </div>
+          <div class="stat">
+            <h3>Loan Amount</h3>
+            <div class="v" id="loanAmount">—</div>
           </div>
           <div class="stat">
             <h3>Total Interest</h3>
