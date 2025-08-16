@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sales Installment & Interest Calculator</title>
+  <meta name="description" content="Calculate monthly installments, interest, amortization schedule, and more. Supports GBP/USD/EUR/TRY and CSV export." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💹</text></svg>">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="heading">
+      <h1>Sales Installment & Interest Calculator</h1>
+      <span class="badge" id="currencyBadge">Currency: GBP (£)</span>
+    </div>
+
+    <div class="card grid">
+      <div class="section">
+        <div class="tabs" id="modeTabs">
+          <button class="tab active" data-mode="payment">Monthly Payment</button>
+          <button class="tab" data-mode="loan">Loan You Can Afford</button>
+          <button class="tab" data-mode="rate">Solve Interest Rate</button>
+          <button class="tab" data-mode="term">Solve Term</button>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Currency</label>
+            <select id="currency">
+              <option value="GBP">GBP (£)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="TRY">TRY (₺)</option>
+            </select>
+          </div>
+          <div>
+            <label>Compounding</label>
+            <select id="compound">
+              <option value="12">Monthly (12)</option>
+              <option value="4">Quarterly (4)</option>
+              <option value="1">Yearly (1)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="inputs"></div>
+
+        <div class="btn-row">
+          <button class="btn" id="calcBtn">Calculate</button>
+          <button class="btn secondary" id="resetBtn">Reset</button>
+          <button class="btn secondary" id="exportBtn" title="Export amortization to CSV">Export CSV</button>
+        </div>
+
+        <p class="footer">Tip: APR is annual percentage rate. Internally we convert to per-period rate based on the compounding you choose.</p>
+      </div>
+
+      <div class="section">
+        <div class="result">
+          <div class="stat">
+            <h3 id="primaryLabel">Monthly Payment</h3>
+            <div class="v" id="primaryValue">—</div>
+          </div>
+          <div class="stat">
+            <h3>Total Interest</h3>
+            <div class="v" id="totalInterest">—</div>
+          </div>
+          <div class="stat">
+            <h3>Total Paid</h3>
+            <div class="v" id="totalPaid">—</div>
+          </div>
+          <div class="stat">
+            <h3>Payoff Date (est.)</h3>
+            <div class="v" id="payoffDate">—</div>
+          </div>
+        </div>
+        <p class="muted" id="summary">Enter details and click Calculate.</p>
+        <div class="scroll" id="scheduleWrap" style="display:none;margin-top:10px">
+          <table>
+            <thead>
+              <tr>
+                <th>Period</th>
+                <th>Payment</th>
+                <th>Interest</th>
+                <th>Principal</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="schedule"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js" defer></script>
+</body>
+</html>
