@@ -3,18 +3,18 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Noyanlar • Taksit Hesaplayıcı</title>
+  <title>Noyanlar • Satış Taksit Hesaplayıcı</title>
   <meta name="theme-color" content="#8b1c23" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- BRAND HEADER -->
+  <!-- BRAND BAR -->
   <header class="brandbar">
     <div class="brand-left">
       <div class="brand-logo" aria-hidden="true">
         <svg viewBox="0 0 256 256" width="28" height="28" role="img">
           <rect width="256" height="256" rx="56" fill="currentColor"></rect>
-          <path d="M64 168h56v24H64a24 24 0 0 1-24-24V88a24 24 0 0 1 24-24h56v24H64v80Zm72 24h56a24 24 0 0 0 24-24V88a24 24 0 0 0-24-24h-56v24h56v80h-56v24Z" fill="#fff"></path>
+          <path d="M64 168h56v24H64a24 24 0 0 1-24-24V88a24 24 0 0 1 24-24h56v24H64v80Zm72 24h56a24 24 0 0 0 24-24V88a24 24 0 0 0-24-24h-56v24h56v80h-56v24Z" fill="#fff"/>
         </svg>
       </div>
       <div class="brand-text">
@@ -28,16 +28,16 @@
   </header>
 
   <main class="wrap">
-    <div class="heading">
+    <div class="page-head">
       <h1>Ödeme Planı</h1>
       <span class="badge" id="currencyBadge">Para Birimi: TRY (₺)</span>
     </div>
 
-    <div class="card grid">
-      <!-- Left column -->
-      <section class="section">
-        <div class="row">
-          <div>
+    <div class="grid">
+      <!-- LEFT: FORM -->
+      <section class="card form-card">
+        <div class="form-grid">
+          <div class="field">
             <label>Para Birimi</label>
             <select id="currency">
               <option value="TRY" selected>TRY (₺)</option>
@@ -46,7 +46,8 @@
               <option value="EUR">EUR (€)</option>
             </select>
           </div>
-          <div>
+
+          <div class="field">
             <label>Bileşik Dönem</label>
             <select id="compound">
               <option value="12">Aylık (12)</option>
@@ -56,7 +57,6 @@
           </div>
         </div>
 
-        <!-- Hazır plan örnekleri -->
         <div id="presets" class="presets">
           <span class="muted">Hazır Planlar:</span>
           <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %8</button>
@@ -64,19 +64,18 @@
           <button class="chip" data-sale="75000" data-down="20000" data-apr="3.75" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %3.75</button>
         </div>
 
-        <!-- Form -->
-        <div id="inputs"></div>
+        <div id="inputs" class="inputs-grid"></div>
 
-        <div class="btn-row">
+        <div class="actions">
           <button class="btn" id="calcBtn">Hesapla</button>
           <button class="btn secondary" id="resetBtn">Sıfırla</button>
-          <button class="btn ghost" id="exportBtn" title="CSV dışa aktar">CSV Dışa Aktar</button>
+          <button class="btn outline" id="exportBtn" title="CSV dışa aktar">CSV Dışa Aktar</button>
         </div>
 
-        <p class="footer">Not: Yıllık faiz oranı (APR) seçtiğiniz bileşik döneme göre periyot başına orana dönüştürülür.</p>
+        <p class="note">Not: Yıllık faiz oranı (APR) seçtiğiniz bileşik döneme göre periyot başına orana dönüştürülür.</p>
 
-        <!-- ↓↓↓ TABLE MOVED HERE (under the note) ↓↓↓ -->
-        <div class="scroll" id="scheduleWrap" style="display:none;margin-top:10px">
+        <!-- TABLE (moved below note) -->
+        <div class="table-wrap" id="scheduleWrap" style="display:none">
           <table>
             <thead>
               <tr>
@@ -88,31 +87,30 @@
             <tbody id="schedule"></tbody>
           </table>
         </div>
-        <!-- ↑↑↑ -->
       </section>
 
-      <!-- Right column -->
-      <section class="section">
-        <div class="result">
+      <!-- RIGHT: SUMMARY -->
+      <aside class="card summary-card">
+        <div class="stats">
           <div class="stat">
-            <h3>Aylık Taksit</h3>
-            <div class="v" id="primaryValue">—</div>
+            <span>Aylık Taksit</span>
+            <strong id="primaryValue">—</strong>
           </div>
           <div class="stat">
-            <h3>Kredi Tutarı</h3>
-            <div class="v" id="loanAmount">—</div>
+            <span>Kredi Tutarı</span>
+            <strong id="loanAmount">—</strong>
           </div>
           <div class="stat">
-            <h3>Toplam Ödeme</h3>
-            <div class="v" id="totalPaid">—</div>
+            <span>Toplam Ödeme</span>
+            <strong id="totalPaid">—</strong>
           </div>
           <div class="stat">
-            <h3>Tahmini Bitiş</h3>
-            <div class="v" id="payoffDate">—</div>
+            <span>Tahmini Bitiş</span>
+            <strong id="payoffDate">—</strong>
           </div>
         </div>
         <p class="muted" id="summary">Değerleri girip “Hesapla”ya basın.</p>
-      </section>
+      </aside>
     </div>
   </main>
 

@@ -1,9 +1,7 @@
 (function(){
-  // ----- Utils -----
   const sym = { TRY:'₺', GBP:'£', USD:'$', EUR:'€' };
-  const fmt = (v, cur='TRY') => isFinite(v)
-    ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})
-    : '—';
+  const fmt = (v, cur='TRY') =>
+    isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
   const $ = id => document.getElementById(id);
 
   const inputsDiv = $('inputs');
@@ -18,25 +16,28 @@
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
   const exportBtn = $('exportBtn');
+
   if ($('year')) $('year').textContent = new Date().getFullYear();
   if ($('printBtn')) $('printBtn').addEventListener('click', ()=> window.print());
 
-  // ----- Render Inputs -----
+  // Render form fields with currency prefixes
   function renderFields(){
     inputsDiv.innerHTML = `
-      <div>
+      <div class="field prefix-wrap">
         <label for="salePrice">Satış Fiyatı</label>
+        <span class="prefix" id="symSale">₺</span>
         <input id="salePrice" type="number" step="0.01" placeholder="örn. 1.000.000" />
       </div>
-      <div>
+      <div class="field prefix-wrap">
         <label for="down">Peşinat</label>
+        <span class="prefix" id="symDown">₺</span>
         <input id="down" type="number" step="0.01" placeholder="örn. 200.000" />
       </div>
-      <div>
+      <div class="field">
         <label for="apr">Yıllık Faiz Oranı (%)</label>
         <input id="apr" type="number" step="0.01" placeholder="örn. 3.75" />
       </div>
-      <div>
+      <div class="field">
         <label for="term">Vade (ay)</label>
         <input id="term" type="number" step="1" placeholder="örn. 120" />
       </div>
@@ -47,22 +48,29 @@
     totalPaid.textContent = '—';
     payoffDate.textContent = '—';
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
+    updateCurrencySymbols();
+  }
+
+  function updateCurrencySymbols(){
+    const s = sym[currencySel.value] || '';
+    const sale = $('symSale'), down = $('symDown');
+    if (sale) sale.textContent = s;
+    if (down) down.textContent = s;
   }
 
   function collectValues(){
     const v = {};
-    inputsDiv.querySelectorAll('input').forEach(el=> v[el.id] = Number(el.value) );
+    inputsDiv.querySelectorAll('input').forEach(el => v[el.id] = Number(el.value));
     return v;
   }
 
-  // Build schedule (we still compute interest/principal internally but DO NOT display them)
   function buildSchedule(P, r, n, pay){
     let bal = P, rows = [];
-    for(let k=1; k<=n; k++){
+    for(let k=1;k<=n;k++){
       const interest = r===0 ? 0 : bal*r;
       const principal = Math.min(bal, pay - interest);
       bal = Math.max(0, bal - principal);
-      rows.push({ k, pay, bal });
+      rows.push({k, pay, bal});
       if (bal<=0) break;
     }
     return rows;
@@ -90,8 +98,9 @@
   }
 
   currencySel.addEventListener('change', ()=>{
-    const m = {TRY:'₺',GBP:'£',USD:'$',EUR:'€'}[currencySel.value];
+    const m = sym[currencySel.value] || '';
     currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${m})`;
+    updateCurrencySymbols();
   });
 
   $('calcBtn').addEventListener('click', ()=>{
@@ -103,14 +112,16 @@
     const r = Number(apr||0)/100/m;
     if(n<=0){ summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
 
-    const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r, -n));
+    const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
 
-    primaryValue.textContent = fmt(payment, cur);
-    loanAmountEl.textContent = fmt(P, cur);
-    totalPaid.textContent = fmt(payment * rows.length, cur);
+    primaryValue.textContent = fmt(payment,cur);
+    loanAmountEl.textContent = fmt(P,cur);
+    totalPaid.textContent = fmt(payment * rows.length,cur);
+
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
     payoffDate.textContent = end.toLocaleDateString();
+
     summary.textContent = `Satış ${fmt(salePrice,cur)}, Peşinat ${fmt(down,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
     scheduleBody.innerHTML = rows.map(rw=>`<tr>
@@ -118,11 +129,12 @@
       <td>${fmt(rw.pay,cur)}</td>
       <td>${fmt(rw.bal,cur)}</td>
     </tr>`).join('');
-    scheduleWrap.style.display='block';
+    scheduleWrap.style.display = 'block';
+
     exportBtn.dataset.csv = toCSV(rows);
   });
 
-  $('resetBtn').addEventListener('click', ()=> renderFields());
+  $('resetBtn').addEventListener('click', renderFields);
 
   exportBtn.addEventListener('click', ()=>{
     const csv = exportBtn.dataset.csv || '';
