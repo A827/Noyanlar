@@ -1,133 +1,88 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Noyanlar • Taksit & Faiz Hesaplayıcı</title>
-  <meta name="description" content="Noyanlar satış ekibi için taksit, faiz ve ödeme planı hesaplayıcı. Satış fiyatı, peşinat, faiz oranı ve vade ile anında hesaplayın." />
-  <meta name="theme-color" content="#8b1c23" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'%3E%3Crect width='256' height='256' rx='56' fill='%238b1c23'/%3E%3Cpath d='M64 168h56v24H64a24 24 0 0 1-24-24V88a24 24 0 0 1 24-24h56v24H64v80Zm72 24h56a24 24 0 0 0 24-24V88a24 24 0 0 0-24-24h-56v24h56v80h-56v24Z' fill='%23ffffff'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Noyanlar Installment Calculator</title>
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <!-- BRAND HEADER -->
-  <header class="brandbar">
-    <div class="brand-left">
-      <div class="brand-logo" aria-hidden="true">
-        <svg viewBox="0 0 256 256" width="28" height="28" role="img">
-          <rect width="256" height="256" rx="56" fill="currentColor"></rect>
-          <path d="M64 168h56v24H64a24 24 0 0 1-24-24V88a24 24 0 0 1 24-24h56v24H64v80Zm72 24h56a24 24 0 0 0 24-24V88a24 24 0 0 0-24-24h-56v24h56v80h-56v24Z" fill="#fff"></path>
-        </svg>
-      </div>
-      <div class="brand-text">
-        <div class="brand-title">Noyanlar</div>
-        <div class="brand-sub">Satış Taksit & Faiz Hesaplayıcı</div>
-      </div>
-    </div>
-    <nav class="brand-right">
-      <a href="https://noyanlar.com/" target="_blank" rel="noopener" class="nav-link">noyanlar.com</a>
-    </nav>
+  <header class="header">
+    <h1>Noyanlar Installment Calculator</h1>
   </header>
 
-  <main class="wrap">
-    <div class="heading">
-      <h1>Ödeme Planı</h1>
-      <span class="badge" id="currencyBadge">Para Birimi: TRY (₺)</span>
-    </div>
-
-    <div class="card grid">
-      <section class="section">
-        <div class="row">
-          <div>
-            <label>Para Birimi</label>
-            <select id="currency">
-              <option value="TRY" selected>TRY (₺)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-            </select>
-          </div>
-          <div>
-            <label>Bileşik Dönem</label>
-            <select id="compound">
-              <option value="12">Aylık (12)</option>
-              <option value="4">3 Aylık (4)</option>
-              <option value="1">Yıllık (1)</option>
-            </select>
-          </div>
+  <main class="container">
+    <form id="loanForm" class="form">
+      <div class="row">
+        <div class="field">
+          <label for="currency">Currency</label>
+          <select id="currency">
+            <option value="TRY" selected>TRY (₺)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+          </select>
         </div>
 
-        <!-- Hazır planlar (dilediğiniz gibi düzenleyin/silin/ekleyin) -->
-        <div id="presets" class="presets">
-          <span class="muted">Hazır Planlar:</span>
-          <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %8</button>
-          <button class="chip" data-sale="75000" data-down="20000" data-apr="5.5" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %5.5</button>
-          <button class="chip" data-sale="75000" data-down="20000" data-apr="3.75" data-term="120">₺75.000 • ₺20.000 • 120 ay @ %3.75</button>
+        <div class="field">
+          <label for="salePrice">Sale Price</label>
+          <input type="number" id="salePrice" step="0.01" placeholder="e.g. 1000000" required />
         </div>
 
-        <!-- Form alanları (tek mod: Aylık Taksit) -->
-        <div id="inputs"></div>
-
-        <div class="btn-row">
-          <button class="btn" id="calcBtn">Hesapla</button>
-          <button class="btn secondary" id="resetBtn">Sıfırla</button>
-          <button class="btn ghost" id="exportBtn" title="Amortismanı CSV olarak dışa aktar">CSV Dışa Aktar</button>
+        <div class="field">
+          <label for="downPayment">Down Payment</label>
+          <input type="number" id="downPayment" step="0.01" placeholder="e.g. 200000" required />
         </div>
 
-        <p class="footer">Not: Yıllık faiz oranı (APR) seçtiğiniz bileşik döneme göre periyot başına orana dönüştürülür.</p>
-      </section>
+        <div class="field">
+          <label for="interestRate">Interest Rate (% / year)</label>
+          <input type="number" id="interestRate" step="0.01" placeholder="e.g. 3.75" required />
+        </div>
 
-      <section class="section">
-        <div class="result">
-          <div class="stat">
-            <h3 id="primaryLabel">Aylık Taksit</h3>
-            <div class="v" id="primaryValue">—</div>
-          </div>
-          <div class="stat">
-            <h3>Kredi Tutarı</h3>
-            <div class="v" id="loanAmount">—</div>
-          </div>
-          <div class="stat">
-            <h3>Toplam Faiz</h3>
-            <div class="v" id="totalInterest">—</div>
-          </div>
-          <div class="stat">
-            <h3>Toplam Ödeme</h3>
-            <div class="v" id="totalPaid">—</div>
-          </div>
-          <div class="stat">
-            <h3>Tahmini Bitiş</h3>
-            <div class="v" id="payoffDate">—</div>
-          </div>
+        <div class="field">
+          <label for="months">Term (months)</label>
+          <input type="number" id="months" step="1" placeholder="e.g. 120" required />
         </div>
-        <p class="muted" id="summary">Değerleri girip “Hesapla”ya basın.</p>
-        <div class="scroll" id="scheduleWrap" style="display:none;margin-top:10px">
-          <table>
-            <thead>
-              <tr>
-                <th>Dönem</th>
-                <th>Taksit</th>
-                <th>Faiz</th>
-                <th>Anapara</th>
-                <th>Bakiye</th>
-              </tr>
-            </thead>
-            <tbody id="schedule"></tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn">Calculate</button>
+        <button type="button" id="resetBtn" class="btn secondary">Reset</button>
+      </div>
+    </form>
+
+    <section id="result" class="result hidden">
+      <h2>Monthly Installment Plan</h2>
+      <div class="stats">
+        <div class="stat"><span>Loan Amount</span><strong id="loanAmount">—</strong></div>
+        <div class="stat"><span>Monthly Payment</span><strong id="monthlyPayment">—</strong></div>
+        <div class="stat"><span>Total Payment</span><strong id="totalPayment">—</strong></div>
+        <div class="stat"><span>Total Interest</span><strong id="totalInterest">—</strong></div>
+        <div class="stat"><span>Estimated Payoff</span><strong id="payoffDate">—</strong></div>
+      </div>
+
+      <h3>Amortization Schedule</h3>
+      <div class="table-wrap">
+        <table id="scheduleTable">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Payment</th>
+              <th>Principal</th>
+              <th>Interest</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
-  <footer class="site-footer">
-    <div>© <span id="year"></span> Noyanlar Group • Tüm hakları saklıdır.</div>
-    <div class="footer-links">
-      <a href="https://noyanlar.com/" target="_blank" rel="noopener">noyanlar.com</a>
-      <span>•</span>
-      <a href="#" id="printBtn">PDF/Print</a>
-    </div>
+  <footer class="footer">
+    © <span id="year"></span> Noyanlar Group of Companies
   </footer>
 
-  <script src="app.js" defer></script>
+  <script src="app.js"></script>
 </body>
 </html>
