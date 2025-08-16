@@ -99,7 +99,8 @@ tbody tr:hover{background:#10182d}
 .stats{display:grid; gap:12px; grid-template-columns:repeat(2,minmax(0,1fr))}
 .stat{background:#0b1020; border:1px solid #22304a; border-radius:14px; padding:12px}
 .stat span{font-size:12px; color:#a1a1aa}
-.stat strong{display:block; font-size:20px; font-weight:800; margin-top:4px}
+.stat strong{display:block; font-size:18px; font-weight:800; margin-top:4px}
+.divider{border:none; border-top:1px dashed #23304a; margin:12px 0}
 
 /* Footer */
 .site-footer{

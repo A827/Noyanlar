@@ -1,5 +1,5 @@
 (function(){
-  // Symbols only GBP/EUR/USD
+  // Symbols: GBP / EUR / USD
   const sym = { GBP:'£', EUR:'€', USD:'$' };
   const fmt = (v, cur='GBP') =>
     isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
@@ -9,11 +9,20 @@
   const currencySel = $('currency');
   const compoundSel = $('compound');
   const currencyBadge = $('currencyBadge');
+
   const primaryValue = $('primaryValue');
   const loanAmountEl = $('loanAmount');
   const totalPaid = $('totalPaid');
   const payoffDate = $('payoffDate');
   const summary = $('summary');
+
+  // NEW: business summary fields
+  const sbSale = $('sbSale');
+  const sbDown = $('sbDown');
+  const sbBalance = $('sbBalance');
+  const sbBalancePlusInterest = $('sbBalancePlusInterest');
+  const sbTotalBurden = $('sbTotalBurden');
+
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
   const exportBtn = $('exportBtn');
@@ -43,21 +52,18 @@
       </div>
     `;
     scheduleWrap.style.display='none';
-    primaryValue.textContent = '—';
-    loanAmountEl.textContent = '—';
-    totalPaid.textContent = '—';
-    payoffDate.textContent = '—';
+    [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
+      .forEach(el=>{ if(el) el.textContent='—'; });
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
     updateCurrencySymbols();
   }
 
   function updateCurrencySymbols(){
     const s = sym[currencySel.value] || '';
+    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${s})`;
     const sale = $('symSale'), down = $('symDown');
     if (sale) sale.textContent = s;
     if (down) down.textContent = s;
-    // update badge text too
-    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${s})`;
   }
 
   function collectValues(){
@@ -66,13 +72,14 @@
     return v;
   }
 
+  // Build amortization schedule (not showing interest/principal columns in UI)
   function buildSchedule(P, r, n, pay){
     let bal = P, rows = [];
     for(let k=1;k<=n;k++){
       const interest = r===0 ? 0 : bal*r;
       const principal = Math.min(bal, pay - interest);
       bal = Math.max(0, bal - principal);
-      rows.push({k, pay, bal});
+      rows.push({k, pay, bal, interest, principal});
       if (bal<=0) break;
     }
     return rows;
@@ -104,7 +111,10 @@
   $('calcBtn').addEventListener('click', ()=>{
     const cur = currencySel.value;
     const { salePrice=0, down=0, apr=0, term=0 } = collectValues();
-    const P = Math.max(0, salePrice - down);
+
+    const sale = Number(salePrice)||0;
+    const downPay = Number(down)||0;
+    const P = Math.max(0, sale - downPay);         // Teslim Sonrası Bakiye (principal)
     const n = Number(term||0);
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
@@ -113,15 +123,29 @@
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
 
+    // Totals from schedule
+    const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0); // sum of paid installments
+    const interestOnLoan = totalInstallments - P;                    // pure interest on the financed balance
+    const totalInterestBurden = (downPay + totalInstallments) - sale;// equals interestOnLoan mathematically
+
+    // Fill "business" summary
+    sbSale.textContent = fmt(sale, cur);
+    sbDown.textContent = fmt(downPay, cur);
+    sbBalance.textContent = fmt(P, cur);
+    sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
+    sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
+
+    // Fill "technical" summary
     primaryValue.textContent = fmt(payment,cur);
     loanAmountEl.textContent = fmt(P,cur);
-    totalPaid.textContent = fmt(payment * rows.length,cur);
+    totalPaid.textContent = fmt(totalInstallments,cur);
 
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
     payoffDate.textContent = end.toLocaleDateString();
 
-    summary.textContent = `Satış ${fmt(salePrice,cur)}, Peşinat ${fmt(down,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
+    summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
+    // Table
     scheduleBody.innerHTML = rows.map(rw=>`<tr>
       <td>${rw.k}</td>
       <td>${fmt(rw.pay,cur)}</td>
