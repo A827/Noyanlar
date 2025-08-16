@@ -157,12 +157,17 @@
     return {rows,totalI,totalP,balance:bal};
   }
 
+  // ✅ FIXED VERSION
   function toCSV(rows){
-    const header = 'Period,Payment,Interest,Principal,Balance
-';
-    const lines = rows.map(r=>[r.k, r.pay.toFixed(2), r.interest.toFixed(2), r.principal.toFixed(2), r.bal.toFixed(2)].join(','));
-    return header + lines.join('
-');
+    const header = 'Period,Payment,Interest,Principal,Balance\n';
+    const lines = rows.map(r=>[
+      r.k,
+      r.pay.toFixed(2),
+      r.interest.toFixed(2),
+      r.principal.toFixed(2),
+      r.bal.toFixed(2)
+    ].join(','));
+    return header + lines.join('\n');
   }
 
   document.getElementById('modeTabs').addEventListener('click', (e)=>{
