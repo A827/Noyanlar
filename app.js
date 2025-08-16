@@ -1,6 +1,7 @@
 (function(){
-  const fmt = (v, cur='GBP')=>{
-    const sym = {GBP:'£',USD:'$',EUR:'€',TRY:'₺'}[cur]||'';
+  // ----- Utils -----
+  const fmt = (v, cur='TRY')=>{
+    const sym = {TRY:'₺', GBP:'£', USD:'$', EUR:'€'}[cur]||'';
     return isFinite(v)? sym+Number(v).toLocaleString(undefined,{maximumFractionDigits:2,minimumFractionDigits:2}) : '—';
   };
   const byId = id=>document.getElementById(id);
@@ -18,54 +19,54 @@
   const scheduleWrap = byId('scheduleWrap');
   const scheduleBody = byId('schedule');
   const exportBtn = byId('exportBtn');
+  const yearSpan = byId('year');
+  if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+  const printBtn = byId('printBtn');
+  if (printBtn) printBtn.addEventListener('click', ()=> window.print());
 
   let mode = 'payment';
   const modes = {
     payment: {
-      label: 'Monthly Payment',
+      label: 'Aylık Taksit',
       fields: [
-        {id:'salePrice', label:'Sale Price', type:'number', step:'0.01', placeholder:'e.g. 75,000'},
-        {id:'down', label:'Down Payment', type:'number', step:'0.01', placeholder:'e.g. 20,000'},
-        {id:'apr', label:'Annual Interest Rate (%)', type:'number', step:'0.01', placeholder:'e.g. 5.5'},
-        {id:'term', label:'Term (months)', type:'number', step:'1', placeholder:'e.g. 120'}
+        {id:'salePrice', label:'Satış Fiyatı', type:'number', step:'0.01', placeholder:'örn. 1.000.000'},
+        {id:'down', label:'Peşinat', type:'number', step:'0.01', placeholder:'örn. 200.000'},
+        {id:'apr', label:'Yıllık Faiz Oranı (%)', type:'number', step:'0.01', placeholder:'örn. 3.75'},
+        {id:'term', label:'Vade (ay)', type:'number', step:'1', placeholder:'örn. 120'}
       ],
       compute: (v)=>{
         const P = Math.max(0,(v.salePrice||0) - (v.down||0));
         const n = Number(v.term||0);
         const m = Number(compoundSel.value);
         const r = Number(v.apr||0)/100/m;
-        let pay;
         if(n<=0) return null;
-        if(r===0){ pay = P/n; }
-        else { pay = P * r / (1 - Math.pow(1+r,-n)); }
-        return {payment:pay, principal:P, r, n, salePrice:Number(v.salePrice||0), down:Number(v.down||0)};
+        const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
+        return {payment, principal:P, r, n, salePrice:Number(v.salePrice||0), down:Number(v.down||0)};
       }
     },
     loan: {
-      label: 'Max Loan (given monthly)',
+      label: 'Maks. Kredi',
       fields: [
-        {id:'monthly', label:'Target Monthly Payment', type:'number', step:'0.01'},
-        {id:'apr', label:'Annual Interest Rate (%)', type:'number', step:'0.01'},
-        {id:'term', label:'Term (months)', type:'number', step:'1'}
+        {id:'monthly', label:'Hedef Aylık Taksit', type:'number', step:'0.01'},
+        {id:'apr', label:'Yıllık Faiz Oranı (%)', type:'number', step:'0.01'},
+        {id:'term', label:'Vade (ay)', type:'number', step:'1'}
       ],
       compute: (v)=>{
         const A = Number(v.monthly||0);
         const n = Number(v.term||0);
         const m = Number(compoundSel.value);
         const r = Number(v.apr||0)/100/m;
-        let P;
         if(n<=0) return null;
-        if(r===0){ P = A*n; }
-        else { P = A * (1 - Math.pow(1+r,-n)) / r; }
-        return {loan:P, payment:A, r, n};
+        const loan = (r===0) ? A*n : A * (1 - Math.pow(1+r,-n)) / r;
+        return {loan, payment:A, r, n};
       }
     },
     rate: {
-      label: 'Solve Interest Rate',
+      label: 'Faizi Çöz',
       fields: [
-        {id:'price', label:'Loan Amount', type:'number', step:'0.01'},
-        {id:'monthly', label:'Monthly Payment', type:'number', step:'0.01'},
-        {id:'term', label:'Term (months)', type:'number', step:'1'}
+        {id:'price', label:'Kredi Tutarı', type:'number', step:'0.01'},
+        {id:'monthly', label:'Aylık Taksit', type:'number', step:'0.01'},
+        {id:'term', label:'Vade (ay)', type:'number', step:'1'}
       ],
       compute: (v)=>{
         const P = Number(v.price||0);
@@ -92,11 +93,11 @@
       }
     },
     term: {
-      label: 'Solve Term',
+      label: 'Vade Çöz',
       fields: [
-        {id:'price', label:'Loan Amount', type:'number', step:'0.01'},
-        {id:'monthly', label:'Monthly Payment', type:'number', step:'0.01'},
-        {id:'apr', label:'Annual Interest Rate (%)', type:'number', step:'0.01'}
+        {id:'price', label:'Kredi Tutarı', type:'number', step:'0.01'},
+        {id:'monthly', label:'Aylık Taksit', type:'number', step:'0.01'},
+        {id:'apr', label:'Yıllık Faiz Oranı (%)', type:'number', step:'0.01'}
       ],
       compute: (v)=>{
         const P = Number(v.price||0);
@@ -108,7 +109,7 @@
         if(r===0){ n = Math.ceil(P / A); }
         else {
           const x = 1 - r*P/A;
-          if(x<=0) return null; // payment too small
+          if(x<=0) return null;
           n = Math.ceil( -Math.log(x) / Math.log(1+r) );
         }
         return {n, r, principal:P, payment:A};
@@ -116,6 +117,7 @@
     }
   };
 
+  // ----- Render Inputs -----
   function renderFields(){
     const cfg = modes[mode];
     byId('primaryLabel').textContent = cfg.label;
@@ -131,7 +133,7 @@
     totalInterest.textContent = '—';
     totalPaid.textContent = '—';
     payoffDate.textContent = '—';
-    summary.textContent = 'Enter details and click Calculate.';
+    summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
   }
 
   function activeTab(btn){
@@ -146,6 +148,7 @@
     return vals;
   }
 
+  // ----- Amortization -----
   function buildSchedule(P, r, n, pay){
     let bal = P, rows = [], totalI=0, totalP=0;
     for(let k=1;k<=n;k++){
@@ -160,7 +163,7 @@
   }
 
   function toCSV(rows){
-    const header = 'Period,Payment,Interest,Principal,Balance\n';
+    const header = 'Donem,Odeme,Faiz,Anapara,Bakiye\n';
     const lines = rows.map(r=>[
       r.k,
       r.pay.toFixed(2),
@@ -171,25 +174,24 @@
     return header + lines.join('\n');
   }
 
+  // ----- Events -----
   document.getElementById('modeTabs').addEventListener('click', (e)=>{
     const t = e.target.closest('.tab');
     if(!t) return;
     mode = t.dataset.mode; activeTab(t); renderFields();
   });
 
-  // Preset buttons: fill the form and calculate
+  // Preset chips
   const presets = document.getElementById('presets');
   if (presets){
     presets.addEventListener('click', (e)=>{
       const b = e.target.closest('.chip');
       if(!b) return;
-      // Switch to Monthly Payment mode
       mode = b.dataset.mode || 'payment';
       document.querySelectorAll('.tab').forEach(tab=>{
         tab.classList.toggle('active', tab.dataset.mode===mode);
       });
       renderFields();
-      // Fill values
       const sale = Number(b.dataset.sale||0);
       const down = Number(b.dataset.down||0);
       const apr  = Number(b.dataset.apr||0);
@@ -198,13 +200,12 @@
       byId('down').value = down;
       byId('apr').value = apr;
       byId('term').value = term;
-      // Trigger calculation
       byId('calcBtn').click();
     });
   }
 
   currencySel.addEventListener('change', ()=>{
-    currencyBadge.textContent = `Currency: ${currencySel.value} (${ {GBP:'£',USD:'$',EUR:'€',TRY:'₺'}[currencySel.value] })`;
+    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${ {TRY:'₺',GBP:'£',USD:'$',EUR:'€'}[currencySel.value] })`;
   });
 
   byId('calcBtn').addEventListener('click', ()=>{
@@ -212,7 +213,7 @@
     const v = collectValues();
     const cur = currencySel.value;
     const res = cfg.compute(v);
-    if(!res){ summary.textContent = 'Please complete the fields with valid numbers.'; return; }
+    if(!res){ summary.textContent = 'Lütfen geçerli sayılar girin.'; return; }
 
     if(mode==='payment'){
       const {payment, principal:P, r, n, salePrice, down} = res;
@@ -223,7 +224,7 @@
       totalPaid.textContent = fmt(sch.totalI + sch.totalP, cur);
       const end = new Date(); end.setMonth(end.getMonth()+sch.rows.length);
       payoffDate.textContent = end.toLocaleDateString();
-      summary.textContent = `Sale ${fmt(salePrice,cur)}, Down ${fmt(down,cur)} → Loan ${fmt(P,cur)} over ${sch.rows.length} months at ${(r*Number(compoundSel.value)*100).toFixed(3)}% APR.`;
+      summary.textContent = `Satış ${fmt(salePrice,cur)}, Peşinat ${fmt(down,cur)} → Kredi ${fmt(P,cur)}, ${sch.rows.length} ay, APR ~ ${(r*Number(compoundSel.value)*100).toFixed(3)}%.`;
       scheduleBody.innerHTML = sch.rows.map(r=>`<tr><td>${r.k}</td><td>${fmt(r.pay,cur)}</td><td>${fmt(r.interest,cur)}</td><td>${fmt(r.principal,cur)}</td><td>${fmt(r.bal,cur)}</td></tr>`).join('');
       scheduleWrap.style.display='block';
       exportBtn.dataset.csv = toCSV(sch.rows);
@@ -236,27 +237,27 @@
       totalInterest.textContent = '—';
       totalPaid.textContent = '—';
       payoffDate.textContent = new Date(new Date().setMonth(new Date().getMonth()+n)).toLocaleDateString();
-      summary.textContent = `With ${fmt(A,cur)} per month for ${n} months at ${(r*Number(compoundSel.value)*100).toFixed(3)}% APR, max loan is ${fmt(loan,cur)}.`;
+      summary.textContent = `${n} ay, APR ~ ${(r*Number(compoundSel.value)*100).toFixed(3)}% ile ${fmt(A,cur)}/ay için maks. kredi ${fmt(loan,cur)}.`;
       scheduleWrap.style.display='none'; exportBtn.dataset.csv = '';
     }
 
     if(mode==='rate'){
       const {apr, principal:P, payment:A, n} = res;
       primaryValue.textContent = (apr>0? apr.toFixed(4):'0.0000') + '% APR';
-      loanAmountEl.textContent = fmt(P, currencySel.value);
+      loanAmountEl.textContent = fmt(P, cur);
       totalInterest.textContent = '—'; totalPaid.textContent='—';
       payoffDate.textContent = new Date(new Date().setMonth(new Date().getMonth()+n)).toLocaleDateString();
-      summary.textContent = `To pay ${fmt(A,cur)} for ${n} months on ${fmt(P,cur)}, APR is ~ ${apr.toFixed(4)}%.`;
+      summary.textContent = `${fmt(P,cur)} kredi için ${n} ay, aylık ${fmt(A,cur)} → APR ≈ ${apr.toFixed(4)}%.`;
       scheduleWrap.style.display='none'; exportBtn.dataset.csv = '';
     }
 
     if(mode==='term'){
       const {n, principal:P, payment:A, r} = res;
-      primaryValue.textContent = `${n} months`;
-      loanAmountEl.textContent = fmt(P, currencySel.value);
+      primaryValue.textContent = `${n} ay`;
+      loanAmountEl.textContent = fmt(P, cur);
       totalInterest.textContent = '—'; totalPaid.textContent='—';
       payoffDate.textContent = new Date(new Date().setMonth(new Date().getMonth()+n)).toLocaleDateString();
-      summary.textContent = `To pay ${fmt(P,cur)} with ${fmt(A,cur)} monthly at ${(r*Number(compoundSel.value)*100).toFixed(3)}% APR, you need ~${n} months.`;
+      summary.textContent = `${fmt(P,cur)} kredi, aylık ${fmt(A,cur)} ve APR ~ ${(r*Number(compoundSel.value)*100).toFixed(3)}% → vade ≈ ${n} ay.`;
       scheduleWrap.style.display='none'; exportBtn.dataset.csv = '';
     }
   });
@@ -265,15 +266,15 @@
 
   exportBtn.addEventListener('click', ()=>{
     const csv = exportBtn.dataset.csv||'';
-    if(!csv){ alert('No amortization to export for this mode.'); return; }
+    if(!csv){ alert('Bu mod için dışa aktarılacak amortisman yok.'); return; }
     const blob = new Blob([csv], {type:'text/csv'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'amortization.csv';
+    a.download = 'amortisman.csv';
     a.click();
     URL.revokeObjectURL(a.href);
   });
 
-  // Initial render
+  // Init
   renderFields();
 })();
