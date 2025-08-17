@@ -219,3 +219,26 @@ tbody tr:hover {
   opacity: 0.7;
   text-align: center;
 }
+/* --- Patch: fix checkbox label wrapping without changing layout --- */
+.checkbox .chk{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;          /* allow wrap so it won't spill into the right panel */
+}
+.checkbox .chk span{
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  line-height:1.2;
+}
+
+/* Prevent any content from spilling outside the card edges */
+.card{ overflow:hidden; }
+
+/* Keep your current layout; only ease the small settings row on narrow screens */
+@media (max-width: 900px){
+  .form-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 640px){
+  .form-grid{ grid-template-columns: 1fr; }
+}
