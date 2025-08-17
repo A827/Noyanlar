@@ -49,18 +49,13 @@
   const propertyBlockInp = $('propertyBlock');
   const propertyUnitInp = $('propertyUnit');
   const propertyTypeInp = $('propertyType');
+  const activeUserSel = $('activeUser');
 
   // meta display
   const metaDate = $('metaDate');
   const metaCustomer = $('metaCustomer');
   const metaProperty = $('metaProperty');
   const metaPrepared = $('metaPrepared');
-
-  // print meta display
-  const printDate = $('printDate');
-  const printCustomer = $('printCustomer');
-  const printProperty = $('printProperty');
-  const printPrepared = $('printPrepared');
 
   // business summary
   const sbSale = $('sbSale');
@@ -86,6 +81,19 @@
   const saveQuoteBtn = $('saveQuoteBtn');
   const clearQuotesBtn = $('clearQuotesBtn');
   const savedList = $('savedList');
+
+  // ADMIN UI
+  const adminBtn = $('adminBtn');
+  const adminModal = $('adminModal');
+  const adminClose = $('adminClose');
+  const addUserBtn = $('addUserBtn');
+  const newUserName = $('newUserName');
+  const newUserEmail = $('newUserEmail');
+  const newUserPhone = $('newUserPhone');
+  const usersList = $('usersList');
+  const changePinBtn = $('changePinBtn');
+  const oldPin = $('oldPin');
+  const newPin = $('newPin');
 
   // ===== HELPERS =====
   const sym = { GBP:'£', EUR:'€', USD:'$' };
@@ -125,12 +133,8 @@
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
     metaDate.textContent = todayStr();
 
-    // restore remembered preferences
     preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
     metaPrepared.textContent = preparedByInp.value || '—';
-
-    // sync print header date immediately
-    if (printDate) printDate.textContent = metaDate.textContent;
   }
 
   function updateCurrencyUI(){
@@ -234,6 +238,67 @@ Total Interest,${meta.totalInterest}
     calcBtn.click();
   }
 
+  // ===== USERS (Admin) =====
+  const USERS_KEY = 'users';
+  const PIN_KEY = 'admin_pin';
+
+  function getUsers(){
+    try{ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }catch{ return []; }
+  }
+  function setUsers(arr){
+    localStorage.setItem(USERS_KEY, JSON.stringify(arr));
+    renderUsersUI();
+  }
+  function ensureDefaults(){
+    if (!localStorage.getItem(PIN_KEY)) localStorage.setItem(PIN_KEY, '0000'); // default PIN
+    if (!localStorage.getItem(USERS_KEY)) {
+      setUsers([{id:crypto.randomUUID?.()||String(Date.now()), name:'Satış Ekibi', email:'', phone:''}]);
+    } else {
+      renderUsersUI();
+    }
+  }
+  function renderUsersUI(){
+    // populate dropdown
+    const users = getUsers();
+    if (activeUserSel){
+      const current = activeUserSel.value;
+      activeUserSel.innerHTML = `<option value="">—</option>` + users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+      if (users.some(u=>u.id===current)) activeUserSel.value = current;
+    }
+    // list in modal
+    if (usersList){
+      usersList.innerHTML = users.map(u=>`
+        <div class="list-item">
+          <div>
+            <strong>${u.name}</strong>
+            <div class="muted" style="font-size:12px">${u.email||'—'} • ${u.phone||'—'}</div>
+          </div>
+          <div>
+            <button class="btn tiny" data-edit="${u.id}">Düzenle</button>
+            <button class="btn tiny secondary" data-del="${u.id}">Sil</button>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+  function requirePin(){
+    const pin = prompt('Admin PIN:');
+    if (!pin) return false;
+    const saved = localStorage.getItem(PIN_KEY) || '0000';
+    if (pin !== saved){ alert('Hatalı PIN'); return false; }
+    return true;
+  }
+
+  function onActiveUserChange(){
+    const id = activeUserSel.value;
+    if (!id) return;
+    const u = getUsers().find(x=>x.id===id);
+    if (!u) return;
+    preparedByInp.value = u.name || '';
+    localStorage.setItem('preparedBy', preparedByInp.value||'');
+    metaPrepared.textContent = preparedByInp.value || '—';
+  }
+
   // ===== META SYNC =====
   function syncMeta(){
     metaDate.textContent = todayStr();
@@ -242,12 +307,6 @@ Total Interest,${meta.totalInterest}
       .filter(Boolean).join(' • ');
     metaProperty.textContent = propBits || '—';
     metaPrepared.textContent = preparedByInp.value.trim() || '—';
-
-    // mirror to print header
-    if (printDate)      printDate.textContent      = metaDate.textContent;
-    if (printCustomer)  printCustomer.textContent  = metaCustomer.textContent;
-    if (printProperty)  printProperty.textContent  = metaProperty.textContent;
-    if (printPrepared)  printPrepared.textContent  = metaPrepared.textContent;
   }
 
   // ===== PREFS =====
@@ -324,7 +383,7 @@ Total Interest,${meta.totalInterest}
   }
 
   // ===== EVENTS =====
-  // Smart PDF filename based on customer + property + date, then restore title
+  // PDF filename
   printBtn?.addEventListener('click', ()=>{
     const customer = (customerNameInp.value || 'Musteri').trim().replace(/\s+/g,'_');
     const property = (propertyNameInp.value || 'Proje').trim().replace(/\s+/g,'_');
@@ -350,8 +409,9 @@ Total Interest,${meta.totalInterest}
   preparedByInp.addEventListener('input', ()=>{
     localStorage.setItem('preparedBy', preparedByInp.value||'');
     metaPrepared.textContent = preparedByInp.value.trim() || '—';
-    if (printPrepared) printPrepared.textContent = metaPrepared.textContent;
   });
+  activeUserSel.addEventListener('change', onActiveUserChange);
+
   [customerNameInp, customerPhoneInp, customerEmailInp,
    propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp]
    .forEach(inp=> inp && inp.addEventListener('input', syncMeta));
@@ -414,12 +474,67 @@ Total Interest,${meta.totalInterest}
     if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
   });
 
+  // Admin modal events
+  adminBtn?.addEventListener('click', ()=>{
+    if (!requirePin()) return;
+    adminModal.style.display = 'flex';
+  });
+  adminClose?.addEventListener('click', ()=> adminModal.style.display = 'none');
+  adminModal?.addEventListener('click', (e)=>{ if (e.target === adminModal) adminModal.style.display = 'none'; });
+
+  addUserBtn?.addEventListener('click', ()=>{
+    const name = (newUserName.value||'').trim();
+    if (!name){ alert('Ad Soyad gerekli'); return; }
+    const users = getUsers();
+    users.push({
+      id: crypto.randomUUID?.() || String(Date.now()),
+      name,
+      email: (newUserEmail.value||'').trim(),
+      phone: (newUserPhone.value||'').trim()
+    });
+    setUsers(users);
+    newUserName.value = ''; newUserEmail.value=''; newUserPhone.value='';
+  });
+
+  usersList?.addEventListener('click', (e)=>{
+    const delId = e.target?.dataset?.del;
+    const editId = e.target?.dataset?.edit;
+    if (delId){
+      const users = getUsers().filter(u=>u.id!==delId);
+      setUsers(users);
+      if (activeUserSel.value === delId){ activeUserSel.value=''; onActiveUserChange(); }
+    }
+    if (editId){
+      const users = getUsers();
+      const u = users.find(x=>x.id===editId);
+      if (!u) return;
+      const newName = prompt('Yeni isim:', u.name) || u.name;
+      const newEmail = prompt('Yeni e-posta:', u.email||'') || u.email;
+      const newPhone = prompt('Yeni telefon:', u.phone||'') || u.phone;
+      u.name = newName.trim(); u.email = newEmail.trim(); u.phone = newPhone.trim();
+      setUsers(users);
+    }
+  });
+
+  changePinBtn?.addEventListener('click', ()=>{
+    const cur = localStorage.getItem(PIN_KEY) || '0000';
+    if ((oldPin.value||'') !== cur){ alert('Mevcut PIN hatalı'); return; }
+    const np = (newPin.value||'').trim();
+    if (!/^\d{4,6}$/.test(np)){ alert('Yeni PIN 4-6 haneli olmalı (sadece rakam)'); return; }
+    localStorage.setItem(PIN_KEY, np);
+    oldPin.value=''; newPin.value='';
+    alert('PIN güncellendi');
+  });
+
   // ===== INIT =====
   (function init(){
+    ensureDefaults();
     const savedCur = localStorage.getItem('currency');
     if (savedCur && sym[savedCur]) currencySel.value = savedCur;
     renderFields();
     updateCurrencyUI();
+    renderUsersUI();
+    onActiveUserChange();
     syncMeta();
     renderSavedList();
   })();
