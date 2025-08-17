@@ -10,11 +10,10 @@
   const compoundSel = $('compound');
   const currencyBadge = $('currencyBadge');
 
-  const primaryValue = $('primaryValue');
-  const loanAmountEl = $('loanAmount');
-  const totalPaid = $('totalPaid');
-  const payoffDate = $('payoffDate');
-  const summary = $('summary');
+  // Meta fields
+  const metaDate = $('metaDate');
+  const metaCustomer = $('metaCustomer');
+  const metaProperty = $('metaProperty');
 
   // Business summary fields
   const sbSale = $('sbSale');
@@ -23,27 +22,26 @@
   const sbBalancePlusInterest = $('sbBalancePlusInterest');
   const sbTotalBurden = $('sbTotalBurden');
 
-  // Meta display
-  const metaDate = $('metaDate');
-  const metaCustomer = $('metaCustomer');
-  const metaProperty = $('metaProperty');
+  // Technical summary fields
+  const primaryValue = $('primaryValue');
+  const loanAmountEl = $('loanAmount');
+  const totalPaid = $('totalPaid');
+  const payoffDate = $('payoffDate');
+  const summary = $('summary');
 
+  // Table & export
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
   const exportBtn = $('exportBtn');
 
-  // Set footer year
+  // Footer
   if ($('year')) $('year').textContent = new Date().getFullYear();
   if ($('printBtn')) $('printBtn').addEventListener('click', ()=> window.print());
 
-  // Helpers
-  function todayStr(){
-    const d = new Date();
-    return d.toLocaleDateString(); // auto locale
-  }
+  const todayStr = () => new Date().toLocaleDateString();
 
-  // Render numeric fields
   function renderFields(){
+    // Numeric inputs (kept dynamic to avoid duplication)
     inputsDiv.innerHTML = `
       <div class="field prefix-wrap">
         <label for="salePrice">Satış Fiyatı</label>
@@ -65,15 +63,14 @@
       </div>
     `;
 
-    // Init meta
-    if (metaDate) metaDate.textContent = todayStr();
-    if (metaCustomer) metaCustomer.textContent = $('customerName')?.value || '—';
-    if (metaProperty) metaProperty.textContent = $('propertyName')?.value || '—';
-
-    scheduleWrap.style.display='none';
+    // Reset summary & meta
+    scheduleWrap.style.display = 'none';
     [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
       .forEach(el=>{ if(el) el.textContent='—'; });
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
+    if (metaDate) metaDate.textContent = todayStr();
+    // keep metaCustomer/metaProperty as-is (they mirror the visible inputs)
+
     updateCurrencySymbols();
   }
 
@@ -91,20 +88,18 @@
     return v;
   }
 
-  // Build amortization schedule
   function buildSchedule(P, r, n, pay){
     let bal = P, rows = [];
     for(let k=1;k<=n;k++){
       const interest = r===0 ? 0 : bal*r;
       const principal = Math.min(bal, pay - interest);
       bal = Math.max(0, bal - principal);
-      rows.push({k, pay, bal, interest, principal});
+      rows.push({k, pay, bal});
       if (bal<=0) break;
     }
     return rows;
   }
 
-  // CSV with meta at the top
   function toCSV(rows, meta){
     const top =
 `Date,${meta.date}
@@ -123,6 +118,14 @@ Total Interest,${meta.totalInterest}
     return top + header + lines.join('\n');
   }
 
+  // Keep meta labels synced with visible inputs
+  const customerInput = $('customerName');
+  const propertyInput = $('propertyName');
+  const syncCustomer = () => { if(metaCustomer) metaCustomer.textContent = customerInput.value.trim() || '—'; };
+  const syncProperty = () => { if(metaProperty) metaProperty.textContent = propertyInput.value.trim() || '—'; };
+  if (customerInput) customerInput.addEventListener('input', syncCustomer);
+  if (propertyInput) propertyInput.addEventListener('input', syncProperty);
+
   // Presets
   const presets = $('presets');
   if (presets){
@@ -138,10 +141,6 @@ Total Interest,${meta.totalInterest}
     });
   }
 
-  // Keep meta labels synced with inputs
-  $('customerName')?.addEventListener('input', (e)=> { if(metaCustomer) metaCustomer.textContent = e.target.value || '—'; });
-  $('propertyName')?.addEventListener('input', (e)=> { if(metaProperty) metaProperty.textContent = e.target.value || '—'; });
-
   currencySel.addEventListener('change', updateCurrencySymbols);
 
   $('calcBtn').addEventListener('click', ()=>{
@@ -150,7 +149,7 @@ Total Interest,${meta.totalInterest}
 
     const sale = Number(salePrice)||0;
     const downPay = Number(down)||0;
-    const P = Math.max(0, sale - downPay);         // Teslim Sonrası Bakiye
+    const P = Math.max(0, sale - downPay); // Teslim Sonrası Bakiye
     const n = Number(term||0);
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
@@ -159,10 +158,8 @@ Total Interest,${meta.totalInterest}
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
 
-    // Totals
     const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0);
-    const interestOnLoan = totalInstallments - P;
-    const totalInterestBurden = (downPay + totalInstallments) - sale; // equals interestOnLoan
+    const totalInterestBurden = (downPay + totalInstallments) - sale;
 
     // Business summary
     sbSale.textContent = fmt(sale, cur);
@@ -171,7 +168,7 @@ Total Interest,${meta.totalInterest}
     sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
     sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
 
-    // Tech summary
+    // Technical summary
     primaryValue.textContent = fmt(payment,cur);
     loanAmountEl.textContent = fmt(P,cur);
     totalPaid.textContent = fmt(totalInstallments,cur);
@@ -179,9 +176,10 @@ Total Interest,${meta.totalInterest}
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
     payoffDate.textContent = end.toLocaleDateString();
 
+    // Meta
     if (metaDate) metaDate.textContent = todayStr();
-    if (metaCustomer) metaCustomer.textContent = $('customerName')?.value || '—';
-    if (metaProperty) metaProperty.textContent = $('propertyName')?.value || '—';
+    syncCustomer();
+    syncProperty();
 
     summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
@@ -208,24 +206,12 @@ Total Interest,${meta.totalInterest}
   });
 
   $('resetBtn').addEventListener('click', ()=>{
-    // clear customer/property fields too
-    const cn = $('customerName'); if (cn) cn.value = '';
-    const pn = $('propertyName'); if (pn) pn.value = '';
-    renderFields();
+    if (customerInput) customerInput.value = '';
+    if (propertyInput) propertyInput.value = '';
     if (metaCustomer) metaCustomer.textContent = '—';
     if (metaProperty) metaProperty.textContent = '—';
     if (metaDate) metaDate.textContent = todayStr();
-  });
-
-  exportBtn.addEventListener('click', ()=>{
-    const csv = exportBtn.dataset.csv || '';
-    if(!csv){ alert('Bu ekran için dışa aktarılacak amortisman yok.'); return; }
-    const blob = new Blob([csv], {type:'text/csv'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'odeme_plani.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    renderFields();
   });
 
   // Init

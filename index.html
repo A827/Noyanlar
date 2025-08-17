@@ -56,8 +56,8 @@
           </div>
         </div>
 
-        <!-- New: Customer & Property -->
-        <div class="inputs-grid">
+        <!-- ALWAYS VISIBLE: Customer & Property -->
+        <div class="inputs-grid" style="margin-top:10px">
           <div class="field">
             <label for="customerName">Müşteri Adı</label>
             <input id="customerName" type="text" placeholder="Ad Soyad" />
@@ -68,6 +68,7 @@
           </div>
         </div>
 
+        <!-- Presets -->
         <div id="presets" class="presets">
           <span class="muted">Hazır Planlar:</span>
           <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">£75,000 • £20,000 • 120 ay @ %8</button>
@@ -75,6 +76,7 @@
           <button class="chip" data-sale="75000" data-down="20000" data-apr="3.75" data-term="120">£75,000 • £20,000 • 120 ay @ %3.75</button>
         </div>
 
+        <!-- NUMERIC INPUTS (rendered by JS) -->
         <div id="inputs" class="inputs-grid"></div>
 
         <div class="actions">
@@ -102,7 +104,7 @@
 
       <!-- RIGHT: SUMMARY -->
       <aside class="card summary-card">
-        <!-- New: Meta header -->
+        <!-- Meta header -->
         <div class="meta">
           <div><span>Tarih</span><strong id="metaDate">—</strong></div>
           <div><span>Müşteri</span><strong id="metaCustomer">—</strong></div>
