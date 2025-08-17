@@ -146,7 +146,6 @@
       if (!raw) return [];
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr)) return [];
-      // Filter malformed entries
       return arr.filter(validUserShape);
     } catch { return []; }
   }
@@ -164,7 +163,6 @@
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length && !validUserShape(parsed[0])) {
-          // legacy: [{username, password, role}]
           users = parsed.map(function(x){
             return {
               id: cryptoRandomId(),
@@ -178,7 +176,7 @@
           saveUsers(users);
         }
       }
-    }catch{ /* ignore */ }
+    }catch{}
 
     if(users.length === 0){
       users = [{
@@ -209,17 +207,15 @@
     if (!loginUserSel) return;
 
     if (users.length === 0){
-      // As a fallback, reseed and re-render
       seedUsersIfEmpty();
     }
     const list = loadUsers();
 
-    // Build options
     loginUserSel.innerHTML = list.map(function(u){
       return '<option value="'+u.id+'">'+u.name+(u.role==='admin'?' (Admin)':'')+'</option>';
     }).join('');
 
-    // Select first by default
+    // Select first by default to avoid blank selection
     if (loginUserSel.options.length > 0){
       loginUserSel.selectedIndex = 0;
     }
@@ -351,6 +347,14 @@
 
   // Login / Logout
   function handleLogin(){
+    // Make sure list is populated & something is selected
+    if (loginUserSel && loginUserSel.options.length === 0) {
+      renderLoginUsers();
+    }
+    if (loginUserSel && !loginUserSel.value && loginUserSel.options.length > 0){
+      loginUserSel.selectedIndex = 0;
+    }
+
     const id = loginUserSel ? loginUserSel.value : '';
     const pass = loginPass ? (loginPass.value || '') : '';
     const u = getUserById(id);
@@ -415,6 +419,11 @@
   // Auth gate buttons
   if (loginBtn) loginBtn.addEventListener('click', handleLogin);
   if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+  // Let Enter on password submit the login
+  if (loginPass) loginPass.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') handleLogin();
+  });
 
   if (activeUserSel) activeUserSel.addEventListener('change', function(){
     const id = activeUserSel.value;
@@ -759,10 +768,7 @@
      INIT
      ========================= */
   (function init(){
-    // Always seed once on load (handles empty or bad data)
     seedUsersIfEmpty();
-
-    // Render login select after seeding
     renderLoginUsers();
 
     if(currentUser()){
