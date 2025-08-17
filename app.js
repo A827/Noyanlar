@@ -1,29 +1,32 @@
 // app.js
 (function(){
-  // ===== THEME TOGGLE (light/dark/auto with persistence) =====
-  const THEME_KEY = 'theme'; // 'light' | 'dark' | 'auto'
+  // ===== THEME (2-state toggle: light <-> dark, persisted) =====
+  const THEME_KEY = 'theme'; // stores only 'light' or 'dark'
   const root = document.documentElement;
   const themeToggle = document.getElementById('themeToggle');
 
+  const systemPrefersDark = () =>
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  function getStoredTheme(){
+    const v = localStorage.getItem(THEME_KEY);
+    return (v === 'light' || v === 'dark') ? v : (systemPrefersDark() ? 'dark' : 'light');
+  }
+
   function applyTheme(mode){
-    root.classList.remove('light');
-    root.setAttribute('data-theme', mode);
-    if(mode === 'light'){ root.classList.add('light'); }
-    localStorage.setItem(THEME_KEY, mode);
-    if(themeToggle){
-      themeToggle.textContent = mode === 'light' ? '☀️' : (mode === 'dark' ? '🌙' : '🌗');
-      themeToggle.title = `Tema: ${mode}`;
+    const m = (mode === 'light' || mode === 'dark') ? mode : (systemPrefersDark() ? 'dark' : 'light');
+    root.setAttribute('data-theme', m);
+    root.classList.toggle('light', m === 'light');
+    localStorage.setItem(THEME_KEY, m);
+    if (themeToggle){
+      themeToggle.textContent = m === 'light' ? '☀️' : '🌙';
+      themeToggle.title = `Tema: ${m}`;
     }
   }
-  function initTheme(){
-    const saved = localStorage.getItem(THEME_KEY);
-    applyTheme(saved || 'auto');
-  }
-  function cycleTheme(){
-    const cur = localStorage.getItem(THEME_KEY) || 'auto';
-    const next = cur === 'auto' ? 'light' : (cur === 'light' ? 'dark' : 'auto');
-    applyTheme(next);
-  }
+
+  function initTheme(){ applyTheme(getStoredTheme()); }
+  function cycleTheme(){ applyTheme(getStoredTheme() === 'light' ? 'dark' : 'light'); }
+
   themeToggle?.addEventListener('click', cycleTheme);
   initTheme();
 
