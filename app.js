@@ -1,24 +1,15 @@
+// app.js
 (function(){
-  // Symbols: GBP / EUR / USD
-  const sym = { GBP:'£', EUR:'€', USD:'$' };
-  const fmt = (v, cur='GBP') =>
-    isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
-  const $ = id => document.getElementById(id);
-
-  // Theme handling
+  // ===== THEME TOGGLE (light/dark/auto with persistence) =====
   const THEME_KEY = 'theme'; // 'light' | 'dark' | 'auto'
   const root = document.documentElement;
-  const themeToggle = $('themeToggle');
+  const themeToggle = document.getElementById('themeToggle');
 
   function applyTheme(mode){
-    // mode: 'light' | 'dark' | 'auto'
     root.classList.remove('light');
-    root.removeAttribute('data-theme');
-    if(mode === 'light'){ root.classList.add('light'); root.setAttribute('data-theme','light'); }
-    else if(mode === 'dark'){ root.setAttribute('data-theme','dark'); }
-    else { root.setAttribute('data-theme','auto'); }
+    root.setAttribute('data-theme', mode);
+    if(mode === 'light'){ root.classList.add('light'); }
     localStorage.setItem(THEME_KEY, mode);
-    // Update button icon
     if(themeToggle){
       themeToggle.textContent = mode === 'light' ? '☀️' : (mode === 'dark' ? '🌙' : '🌗');
       themeToggle.title = `Tema: ${mode}`;
@@ -26,25 +17,27 @@
   }
   function initTheme(){
     const saved = localStorage.getItem(THEME_KEY);
-    if(saved){ applyTheme(saved); return; }
-    applyTheme('auto'); // default to system
+    applyTheme(saved || 'auto');
   }
   function cycleTheme(){
     const cur = localStorage.getItem(THEME_KEY) || 'auto';
     const next = cur === 'auto' ? 'light' : (cur === 'light' ? 'dark' : 'auto');
     applyTheme(next);
   }
-  if(themeToggle) themeToggle.addEventListener('click', cycleTheme);
+  themeToggle?.addEventListener('click', cycleTheme);
   initTheme();
 
-  // Elements (calculator)
+  // ===== ELEMENTS =====
+  const $ = (id)=>document.getElementById(id);
   const inputsDiv = $('inputs');
+
+  // selectors
   const currencySel = $('currency');
   const compoundSel = $('compound');
   const interestFree = $('interestFree');
   const currencyBadge = $('currencyBadge');
 
-  // Meta inputs
+  // meta inputs
   const preparedByInp = $('preparedBy');
   const customerNameInp = $('customerName');
   const customerPhoneInp = $('customerPhone');
@@ -54,27 +47,27 @@
   const propertyUnitInp = $('propertyUnit');
   const propertyTypeInp = $('propertyType');
 
-  // Meta display
+  // meta display
   const metaDate = $('metaDate');
   const metaCustomer = $('metaCustomer');
   const metaProperty = $('metaProperty');
   const metaPrepared = $('metaPrepared');
 
-  // Business summary
+  // business summary
   const sbSale = $('sbSale');
   const sbDown = $('sbDown');
   const sbBalance = $('sbBalance');
   const sbBalancePlusInterest = $('sbBalancePlusInterest');
   const sbTotalBurden = $('sbTotalBurden');
 
-  // Technical summary
+  // technical summary
   const primaryValue = $('primaryValue');
   const loanAmountEl = $('loanAmount');
   const totalPaid = $('totalPaid');
   const payoffDate = $('payoffDate');
   const summary = $('summary');
 
-  // Table / export / save
+  // table & export & save
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
   const exportBtn = $('exportBtn');
@@ -85,17 +78,19 @@
   const clearQuotesBtn = $('clearQuotesBtn');
   const savedList = $('savedList');
 
-  // Chart
+  // chart
   const chartCanvas = $('chart');
   const ctx = chartCanvas.getContext('2d');
 
-  // Footer year
+  // ===== HELPERS =====
+  const sym = { GBP:'£', EUR:'€', USD:'$' };
+  const fmt = (v, cur='GBP') =>
+    isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+  const todayStr = () => new Date().toLocaleDateString();
+
   if ($('year')) $('year').textContent = new Date().getFullYear();
 
-  // Helpers
-  const todayStr = () => new Date().toLocaleDateString();
-  const getCurrency = () => currencySel.value;
-  const getSymbol = () => sym[getCurrency()] || '';
+  function getSymbol(){ return sym[currencySel.value] || ''; }
 
   function renderFields(){
     inputsDiv.innerHTML = `
@@ -118,12 +113,14 @@
         <input id="term" type="number" step="1" placeholder="örn. 120" />
       </div>
     `;
+
     scheduleWrap.style.display='none';
     [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
       .forEach(el=> el.textContent='—');
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
     metaDate.textContent = todayStr();
-    // restore remembered fields
+
+    // restore remembered preferences
     preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
     metaPrepared.textContent = preparedByInp.value || '—';
   }
@@ -216,7 +213,7 @@ Total Interest,${meta.totalInterest}
     ctx.fillText('Taksit', W-pad-50, yPay-6);
   }
 
-  // Saved quotes (localStorage)
+  // ===== PERSISTENCE (Saved quotes) =====
   function getQuotes(){
     try{ return JSON.parse(localStorage.getItem('quotes')||'[]'); }catch{ return []; }
   }
@@ -243,7 +240,6 @@ Total Interest,${meta.totalInterest}
   }
   function loadQuote(i){
     const q = getQuotes()[i]; if(!q) return;
-    // populate fields
     preparedByInp.value = q.preparedBy||'';
     customerNameInp.value = q.customer||'';
     customerPhoneInp.value = q.phone||'';
@@ -255,7 +251,7 @@ Total Interest,${meta.totalInterest}
     localStorage.setItem('preparedBy', preparedByInp.value||'');
     currencySel.value = q.currency||currencySel.value;
     localStorage.setItem('currency', currencySel.value);
-    renderFields(); // resets numeric area & symbols
+    renderFields();
     $('salePrice').value = q.sale||0;
     $('down').value = q.down||0;
     $('apr').value = q.apr||0;
@@ -267,6 +263,7 @@ Total Interest,${meta.totalInterest}
     calcBtn.click();
   }
 
+  // ===== META SYNC =====
   function syncMeta(){
     metaDate.textContent = todayStr();
     metaCustomer.textContent = customerNameInp.value.trim() || '—';
@@ -276,7 +273,7 @@ Total Interest,${meta.totalInterest}
     metaPrepared.textContent = preparedByInp.value.trim() || '—';
   }
 
-  // Remember currency & preparedBy
+  // ===== PREFS =====
   function loadPrefs(){
     const savedCur = localStorage.getItem('currency');
     if (savedCur && sym[savedCur]) currencySel.value = savedCur;
@@ -284,17 +281,18 @@ Total Interest,${meta.totalInterest}
     preparedByInp.value = preparedByInp.value || savedPrepared;
   }
 
-  // Calculate
+  // ===== CALC =====
   function calculate(){
     const cur = currencySel.value;
     const { salePrice=0, down=0, apr=0, term=0 } = collectValues();
 
     const sale = Number(salePrice)||0;
     const downPay = Number(down)||0;
-    const P = Math.max(0, sale - downPay); // balance
+    const P = Math.max(0, sale - downPay);
     const n = Number(term||0);
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
+
     if(n<=0){ summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
 
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
@@ -351,7 +349,9 @@ Total Interest,${meta.totalInterest}
     });
   }
 
-  // Events
+  // ===== EVENTS =====
+  printBtn?.addEventListener('click', ()=> window.print());
+
   currencySel.addEventListener('change', ()=>{
     localStorage.setItem('currency', currencySel.value);
     updateCurrencyUI();
@@ -368,7 +368,6 @@ Total Interest,${meta.totalInterest}
     localStorage.setItem('preparedBy', preparedByInp.value||'');
     metaPrepared.textContent = preparedByInp.value.trim() || '—';
   });
-
   [customerNameInp, customerPhoneInp, customerEmailInp,
    propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp]
    .forEach(inp=> inp && inp.addEventListener('input', syncMeta));
@@ -385,6 +384,7 @@ Total Interest,${meta.totalInterest}
   });
 
   calcBtn.addEventListener('click', ()=>{ syncMeta(); calculate(); });
+
   resetBtn.addEventListener('click', ()=>{
     [customerNameInp, customerPhoneInp, customerEmailInp,
      propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp].forEach(i=> i && (i.value=''));
@@ -403,58 +403,10 @@ Total Interest,${meta.totalInterest}
     URL.revokeObjectURL(a.href);
   });
 
-  // print button
-  if (printBtn) printBtn.addEventListener('click', ()=> window.print());
-
-  // Save/load quotes
-  function getQuotes(){ try{ return JSON.parse(localStorage.getItem('quotes')||'[]'); }catch{ return []; } }
-  function setQuotes(arr){ localStorage.setItem('quotes', JSON.stringify(arr)); renderSavedList(); }
-  function renderSavedList(){
-    const items = getQuotes();
-    savedList.innerHTML = items.length ? '' : '<li class="id">Henüz kayıt yok.</li>';
-    items.forEach((q, idx)=>{
-      const li = document.createElement('li');
-      const left = document.createElement('div');
-      left.innerHTML = `<strong>${q.customer||'—'}</strong> · ${q.property||'—'} <span class="id">(${q.date})</span>`;
-      const right = document.createElement('div'); right.className='actions';
-      const loadBtn = document.createElement('button'); loadBtn.className='btn tiny'; loadBtn.textContent='Yükle';
-      const delBtn = document.createElement('button'); delBtn.className='btn tiny secondary'; delBtn.textContent='Sil';
-      loadBtn.onclick = ()=> loadQuote(idx);
-      delBtn.onclick = ()=> { const arr=getQuotes(); arr.splice(idx,1); setQuotes(arr); };
-      right.appendChild(loadBtn); right.appendChild(delBtn);
-      li.appendChild(left); li.appendChild(right);
-      savedList.appendChild(li);
-    });
-  }
-  function loadQuote(i){
-    const q = getQuotes()[i]; if(!q) return;
-    preparedByInp.value = q.preparedBy||'';
-    customerNameInp.value = q.customer||'';
-    customerPhoneInp.value = q.phone||'';
-    customerEmailInp.value = q.email||'';
-    propertyNameInp.value = q.property||'';
-    propertyBlockInp.value = q.block||'';
-    propertyUnitInp.value = q.unit||'';
-    propertyTypeInp.value = q.type||'';
-    localStorage.setItem('preparedBy', preparedByInp.value||'');
-    currencySel.value = q.currency||currencySel.value;
-    localStorage.setItem('currency', currencySel.value);
-    renderFields();
-    $('salePrice').value = q.sale||0;
-    $('down').value = q.down||0;
-    $('apr').value = q.apr||0;
-    $('term').value = q.term||0;
-    interestFree.checked = (q.apr === 0);
-    $('apr').disabled = interestFree.checked;
-    updateCurrencyUI();
-    syncMeta();
-    calcBtn.click();
-  }
-  if (saveQuoteBtn) saveQuoteBtn.addEventListener('click', ()=>{
-    const cur = getCurrency();
-    const sale = Number(($('salePrice')||{}).value || 0);
-    const term = Number(($('term')||{}).value || 0);
-    if (!sale || !term){ alert('Kaydetmek için Satış Fiyatı ve Vade gerekli.'); return; }
+  saveQuoteBtn.addEventListener('click', ()=>{
+    const cur = currencySel.value;
+    const { salePrice, down, apr, term } = collectValues();
+    if (!salePrice || !term){ alert('Kaydetmek için Satış Fiyatı ve Vade gerekli.'); return; }
     const q = {
       date: todayStr(),
       preparedBy: preparedByInp.value||'',
@@ -466,22 +418,26 @@ Total Interest,${meta.totalInterest}
       unit: propertyUnitInp.value||'',
       type: propertyTypeInp.value||'',
       currency: cur,
-      sale: sale,
-      down: Number(($('down')||{}).value || 0),
-      apr: Number(($('apr')||{}).value || 0),
-      term: term
+      sale: Number(salePrice)||0,
+      down: Number(down)||0,
+      apr: Number(apr)||0,
+      term: Number(term)||0
     };
     const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
   });
-  if (clearQuotesBtn) clearQuotesBtn.addEventListener('click', ()=>{ if(confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]); });
 
-  // Init
+  clearQuotesBtn.addEventListener('click', ()=>{
+    if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
+  });
+
+  // ===== INIT =====
   (function init(){
-    const saved = localStorage.getItem('currency');
-    if (saved) currencySel.value = saved;
+    const savedCur = localStorage.getItem('currency');
+    if (savedCur && sym[savedCur]) currencySel.value = savedCur;
     renderFields();
     updateCurrencyUI();
     syncMeta();
     renderSavedList();
   })();
+
 })();

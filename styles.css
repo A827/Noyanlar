@@ -1,3 +1,4 @@
+/* styles.css */
 /* THEME TOKENS (Dark default) */
 :root{
   --brand:#8b1c23; --brand-2:#caa46a;
@@ -22,7 +23,7 @@
   --watermark:#8b1c23; --shadow:0 10px 25px rgba(0,0,0,.08);
 }
 
-/* AUTO: respect system preference when data-theme="auto" and no saved choice */
+/* AUTO: respect system preference when data-theme="auto" */
 @media (prefers-color-scheme: light){
   :root[data-theme="auto"]{
     --bg:#f7f8fb; --card:#ffffff; --ink:#101629; --muted:#5c6474; --line:#d9dfeb;
@@ -60,7 +61,7 @@ body{
 .brand-sub{font-size:12px; color:var(--muted)}
 .nav-link{
   color:var(--ink); text-decoration:none; padding:8px 12px; border-radius:10px;
-  border:1px solid var(--btn-ghost-border); background:var(--btn-ghost-bg)
+  border:1px solid var(--btn-ghost-border); background:var(--btn-ghost-bg); cursor:pointer;
 }
 .nav-link:hover{box-shadow:0 0 0 3px var(--chip-hover)}
 
