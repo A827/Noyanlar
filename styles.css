@@ -1,162 +1,114 @@
-/* ---------- Base Reset ---------- */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
+/* --- Base Layout --- */
 body {
   font-family: Arial, sans-serif;
-  background-color: #0f172a; /* dark background */
-  color: #e2e8f0;
-  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
 }
 
-/* ---------- Container ---------- */
+:root {
+  --bg: #f5f5f5;
+  --card-bg: #fff;
+  --text: #333;
+  --primary: #0077cc;
+}
+
+body.dark {
+  --bg: #1e1e1e;
+  --card-bg: #2c2c2c;
+  --text: #f0f0f0;
+  --primary: #4da3ff;
+}
+
 .container {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: 20px;
+  max-width: 1000px;
+  margin: 30px auto;
   padding: 20px;
 }
 
-.left-panel,
-.right-panel {
-  flex: 1;
-  background: #1e293b;
-  padding: 20px;
+h1, h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
 }
 
-/* ---------- Headings ---------- */
-h1,
-h2,
-h3 {
-  margin-bottom: 16px;
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+label {
   font-weight: bold;
-  color: #f1f5f9;
+  margin-bottom: 6px;
+  display: block;
 }
 
-/* ---------- Form Inputs ---------- */
-input,
-select,
-textarea {
+input, select {
   width: 100%;
-  padding: 10px;
-  margin: 8px 0 16px 0;
-  border-radius: 8px;
-  border: 1px solid #334155;
-  background: #0f172a;
-  color: #f8fafc;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: #38bdf8;
-  box-shadow: 0 0 4px #38bdf8;
-}
-
-/* ---------- Buttons ---------- */
+/* --- Buttons --- */
 button {
-  background: #38bdf8;
-  color: #0f172a;
-  font-weight: bold;
-  padding: 12px 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s ease-in-out;
-}
-
-button:hover {
-  background: #0ea5e9;
+  background: var(--primary);
   color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+button:hover {
+  opacity: 0.9;
 }
 
-/* ---------- Table ---------- */
-table {
+/* --- Results Table --- */
+.results {
+  margin-top: 20px;
+}
+.results table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 16px;
 }
-
-table th,
-table td {
-  padding: 12px;
-  text-align: center;
-  border-bottom: 1px solid #334155;
-}
-
-table th {
-  background: #1e293b;
-  font-weight: bold;
-}
-
-table tr:nth-child(even) {
-  background: #0f172a;
-}
-
-/* ---------- Toggle Button ---------- */
-.toggle-mode {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #334155;
-  border-radius: 50%;
+.results th, .results td {
   padding: 10px;
-  cursor: pointer;
-  transition: 0.3s ease;
+  border: 1px solid #ddd;
+  text-align: left;
 }
-
-.toggle-mode:hover {
-  background: #475569;
-}
-
-/* ---------- Light Mode ---------- */
-.light-mode {
-  background-color: #f8fafc;
-  color: #0f172a;
-}
-
-.light-mode .left-panel,
-.light-mode .right-panel {
-  background: #e2e8f0;
-  color: #0f172a;
-}
-
-.light-mode input,
-.light-mode select,
-.light-mode textarea {
-  background: #fff;
-  color: #0f172a;
-  border: 1px solid #cbd5e1;
-}
-
-.light-mode table th {
-  background: #f1f5f9;
-}
-
-.light-mode table tr:nth-child(even) {
-  background: #f9fafb;
-}
-
-.light-mode button {
-  background: #0ea5e9;
+.results th {
+  background: var(--primary);
   color: #fff;
 }
 
-.light-mode button:hover {
-  background: #0284c7;
+/* --- Toggle Button --- */
+.toggle-container {
+  text-align: right;
+  margin-bottom: 10px;
 }
 
-/* ---------- Fix: Checkbox Wrapping ---------- */
-input[type="checkbox"] {
-  width: auto !important;
-  margin-right: 8px;
-  display: inline-block;
-  vertical-align: middle;
+/* --- Patch: fix checkbox wrapping only --- */
+.checkbox .chk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;  
+}
+.checkbox .chk span {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
