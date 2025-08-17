@@ -9,31 +9,35 @@ function json(data, status = 200) {
 export async function onRequestPost({ env, request }) {
   try {
     const body = await request.json().catch(() => ({}));
-    let name = (body.name ?? "").toString().trim();
-    let pass = (body.pass ?? "").toString().trim();
+    const nameIn = (body.name ?? "").toString().trim();
+    const passIn = (body.pass ?? "").toString().trim();
 
-    if (!name || !pass) return json({ ok: false, error: "Missing credentials" }, 400);
-    if (!env.DB)       return json({ ok: false, error: "D1 binding DB not found" }, 500);
+    if (!nameIn || !passIn) return json({ ok: false, error: "Missing credentials" }, 400);
+    if (!env.DB)           return json({ ok: false, error: "D1 binding DB not found" }, 500);
 
-    // Case-insensitive username, trim password, and compare as TEXT.
+    // Case-insensitive username, tolerant password compare (trim + cast to TEXT)
     const stmt = env.DB.prepare(
       `SELECT id, name, email, phone, role
          FROM users
-        WHERE name = ? COLLATE NOCASE
-          AND CAST(TRIM(pass) AS TEXT) = CAST(TRIM(?) AS TEXT)
+        WHERE LOWER(name) = LOWER(?)
+          AND TRIM(CAST(pass AS TEXT)) = TRIM(CAST(? AS TEXT))
         LIMIT 1`
-    ).bind(name, pass);
+    ).bind(nameIn, passIn);
 
     const user = await stmt.first();
 
     if (!user) {
-      // Help while we debug: also check if the username exists at all.
-      const exists = await env.DB
-        .prepare(`SELECT 1 FROM users WHERE name = ? COLLATE NOCASE LIMIT 1`)
-        .bind(name)
+      // Extra diagnostics to tell which side failed
+      const uname = await env.DB
+        .prepare(`SELECT 1 FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1`)
+        .bind(nameIn)
         .first();
-      if (!exists) return json({ ok: false, error: "User not found" }, 401);
-      return json({ ok: false, error: "Password mismatch" }, 401);
+
+      return json({
+        ok: false,
+        error: uname ? "Password mismatch" : "User not found",
+        debug: { nameIn, passLen: passIn.length }
+      }, 401);
     }
 
     return json({ ok: true, user }, 200);
