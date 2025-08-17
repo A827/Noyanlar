@@ -1,0 +1,4 @@
+[[d1_databases]]
+binding = "DB"                 # must match what you use in your code
+database_name = "noy-db"       # the actual name in Cloudflare dashboard
+database_id = "<your-db-uuid>" # from D1 dashboard
