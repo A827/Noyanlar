@@ -1,4 +1,4 @@
 [[d1_databases]]
-binding = "DB"
-database_name = "noyanlar-db"
-database_id = "xxxx-yyyy-zzzz"
+binding = "DB"            # <-- must be DB
+database_name = "noy-db"  # (or whatever you created)
+database_id   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
