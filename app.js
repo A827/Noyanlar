@@ -5,87 +5,110 @@
     isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
   const $ = id => document.getElementById(id);
 
+  // Elements
   const inputsDiv = $('inputs');
   const currencySel = $('currency');
   const compoundSel = $('compound');
+  const interestFree = $('interestFree');
   const currencyBadge = $('currencyBadge');
 
-  // Meta fields
+  // Meta inputs
+  const preparedByInp = $('preparedBy');
+  const customerNameInp = $('customerName');
+  const customerPhoneInp = $('customerPhone');
+  const customerEmailInp = $('customerEmail');
+  const propertyNameInp = $('propertyName');
+  const propertyBlockInp = $('propertyBlock');
+  const propertyUnitInp = $('propertyUnit');
+  const propertyTypeInp = $('propertyType');
+
+  // Meta display
   const metaDate = $('metaDate');
   const metaCustomer = $('metaCustomer');
   const metaProperty = $('metaProperty');
+  const metaPrepared = $('metaPrepared');
 
-  // Business summary fields
+  // Business summary
   const sbSale = $('sbSale');
   const sbDown = $('sbDown');
   const sbBalance = $('sbBalance');
   const sbBalancePlusInterest = $('sbBalancePlusInterest');
   const sbTotalBurden = $('sbTotalBurden');
 
-  // Technical summary fields
+  // Technical summary
   const primaryValue = $('primaryValue');
   const loanAmountEl = $('loanAmount');
   const totalPaid = $('totalPaid');
   const payoffDate = $('payoffDate');
   const summary = $('summary');
 
-  // Table & export
+  // Table / export / save
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
   const exportBtn = $('exportBtn');
+  const printBtn = $('printBtn');
+  const calcBtn = $('calcBtn');
+  const resetBtn = $('resetBtn');
+  const saveQuoteBtn = $('saveQuoteBtn');
+  const clearQuotesBtn = $('clearQuotesBtn');
+  const savedList = $('savedList');
 
-  // Footer
+  // Chart
+  const chartCanvas = $('chart');
+  const ctx = chartCanvas.getContext('2d');
+
+  // Footer year
   if ($('year')) $('year').textContent = new Date().getFullYear();
-  if ($('printBtn')) $('printBtn').addEventListener('click', ()=> window.print());
 
+  // Helpers
   const todayStr = () => new Date().toLocaleDateString();
+  const getCurrency = () => currencySel.value;
+  const getSymbol = () => sym[getCurrency()] || '';
 
   function renderFields(){
-    // Numeric inputs (kept dynamic to avoid duplication)
     inputsDiv.innerHTML = `
       <div class="field prefix-wrap">
         <label for="salePrice">Satış Fiyatı</label>
-        <span class="prefix" id="symSale">£</span>
+        <span class="prefix" id="symSale">${getSymbol()}</span>
         <input id="salePrice" type="number" step="0.01" placeholder="örn. 75,000" />
       </div>
       <div class="field prefix-wrap">
         <label for="down">Peşinat</label>
-        <span class="prefix" id="symDown">£</span>
+        <span class="prefix" id="symDown">${getSymbol()}</span>
         <input id="down" type="number" step="0.01" placeholder="örn. 20,000" />
       </div>
       <div class="field">
         <label for="apr">Yıllık Faiz Oranı (%)</label>
-        <input id="apr" type="number" step="0.01" placeholder="örn. 3.75" />
+        <input id="apr" type="number" step="0.01" placeholder="örn. 3.75" ${interestFree.checked ? 'disabled' : ''}/>
       </div>
       <div class="field">
         <label for="term">Vade (ay)</label>
         <input id="term" type="number" step="1" placeholder="örn. 120" />
       </div>
     `;
-
-    // Reset summary & meta
-    scheduleWrap.style.display = 'none';
+    scheduleWrap.style.display='none';
     [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
-      .forEach(el=>{ if(el) el.textContent='—'; });
+      .forEach(el=> el.textContent='—');
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
-    if (metaDate) metaDate.textContent = todayStr();
-    // keep metaCustomer/metaProperty as-is (they mirror the visible inputs)
-
-    updateCurrencySymbols();
+    metaDate.textContent = todayStr();
+    // restore remembered fields
+    preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
+    metaPrepared.textContent = preparedByInp.value || '—';
   }
 
-  function updateCurrencySymbols(){
-    const s = sym[currencySel.value] || '';
-    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${s})`;
+  function updateCurrencyUI(){
+    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${getSymbol()})`;
     const sale = $('symSale'), down = $('symDown');
-    if (sale) sale.textContent = s;
-    if (down) down.textContent = s;
+    if (sale) sale.textContent = getSymbol();
+    if (down) down.textContent = getSymbol();
   }
 
   function collectValues(){
-    const v = {};
-    inputsDiv.querySelectorAll('input').forEach(el => v[el.id] = Number(el.value));
-    return v;
+    const salePrice = Number(($('salePrice')||{}).value || 0);
+    const down = Number(($('down')||{}).value || 0);
+    const apr = interestFree.checked ? 0 : Number(($('apr')||{}).value || 0);
+    const term = Number(($('term')||{}).value || 0);
+    return { salePrice, down, apr, term };
   }
 
   function buildSchedule(P, r, n, pay){
@@ -103,8 +126,14 @@
   function toCSV(rows, meta){
     const top =
 `Date,${meta.date}
+Prepared By,${meta.preparedBy}
 Customer,${meta.customer}
+Phone,${meta.phone}
+Email,${meta.email}
 Property,${meta.property}
+Block,${meta.block}
+Unit,${meta.unit}
+Type,${meta.type}
 Currency,${meta.currency}
 Sale Price,${meta.sale}
 Down Payment,${meta.down}
@@ -118,38 +147,116 @@ Total Interest,${meta.totalInterest}
     return top + header + lines.join('\n');
   }
 
-  // Keep meta labels synced with visible inputs
-  const customerInput = $('customerName');
-  const propertyInput = $('propertyName');
-  const syncCustomer = () => { if(metaCustomer) metaCustomer.textContent = customerInput.value.trim() || '—'; };
-  const syncProperty = () => { if(metaProperty) metaProperty.textContent = propertyInput.value.trim() || '—'; };
-  if (customerInput) customerInput.addEventListener('input', syncCustomer);
-  if (propertyInput) propertyInput.addEventListener('input', syncProperty);
+  function drawChart(rows, payment){
+    // Simple balance line + payment line
+    const W = chartCanvas.width, H = chartCanvas.height;
+    ctx.clearRect(0,0,W,H);
+    if (!rows.length) return;
 
-  // Presets
-  const presets = $('presets');
-  if (presets){
-    presets.addEventListener('click', (e)=>{
-      const b = e.target.closest('.chip');
-      if(!b) return;
-      renderFields();
-      $('salePrice').value = Number(b.dataset.sale||0);
-      $('down').value = Number(b.dataset.down||0);
-      $('apr').value = Number(b.dataset.apr||0);
-      $('term').value = Number(b.dataset.term||0);
-      $('calcBtn').click();
-    });
+    const maxBal = Math.max(...rows.map(r=>r.bal).concat(rows[0].bal));
+    const pad = 24;
+    const toX = i => pad + (i/rows.length) * (W - 2*pad);
+    const toY = v => H - pad - (v/maxBal) * (H - 2*pad);
+
+    // axes
+    ctx.strokeStyle = '#293650'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
+
+    // balance line
+    ctx.strokeStyle = '#caa46a'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(rows[0].bal || 0));
+    rows.forEach((r,i)=>{ ctx.lineTo(toX(i+1), toY(r.bal)); });
+    ctx.stroke();
+
+    // payment flat line (for reference)
+    ctx.strokeStyle = '#8b1c23'; ctx.setLineDash([6,4]);
+    const yPay = H - pad - (payment/maxBal) * (H - 2*pad);
+    ctx.beginPath(); ctx.moveTo(pad, yPay); ctx.lineTo(W-pad, yPay); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // labels
+    ctx.fillStyle = '#9aa3b2'; ctx.font = '12px system-ui';
+    ctx.fillText('Bakiye', pad+6, toY(rows[0].bal||0)-8);
+    ctx.fillText('Taksit', W-pad-50, yPay-6);
   }
 
-  currencySel.addEventListener('change', updateCurrencySymbols);
+  // Saved quotes (localStorage)
+  function getQuotes(){
+    try{ return JSON.parse(localStorage.getItem('quotes')||'[]'); }catch{ return []; }
+  }
+  function setQuotes(arr){
+    localStorage.setItem('quotes', JSON.stringify(arr));
+    renderSavedList();
+  }
+  function renderSavedList(){
+    const items = getQuotes();
+    savedList.innerHTML = items.length ? '' : '<li class="id">Henüz kayıt yok.</li>';
+    items.forEach((q, idx)=>{
+      const li = document.createElement('li');
+      const left = document.createElement('div');
+      left.innerHTML = `<strong>${q.customer||'—'}</strong> · ${q.property||'—'} <span class="id">(${q.date})</span>`;
+      const right = document.createElement('div'); right.className='actions';
+      const loadBtn = document.createElement('button'); loadBtn.className='btn tiny'; loadBtn.textContent='Yükle';
+      const delBtn = document.createElement('button'); delBtn.className='btn tiny secondary'; delBtn.textContent='Sil';
+      loadBtn.onclick = ()=> loadQuote(idx);
+      delBtn.onclick = ()=> { const arr=getQuotes(); arr.splice(idx,1); setQuotes(arr); };
+      right.appendChild(loadBtn); right.appendChild(delBtn);
+      li.appendChild(left); li.appendChild(right);
+      savedList.appendChild(li);
+    });
+  }
+  function loadQuote(i){
+    const q = getQuotes()[i]; if(!q) return;
+    // populate fields
+    preparedByInp.value = q.preparedBy||'';
+    customerNameInp.value = q.customer||'';
+    customerPhoneInp.value = q.phone||'';
+    customerEmailInp.value = q.email||'';
+    propertyNameInp.value = q.property||'';
+    propertyBlockInp.value = q.block||'';
+    propertyUnitInp.value = q.unit||'';
+    propertyTypeInp.value = q.type||'';
+    localStorage.setItem('preparedBy', preparedByInp.value||'');
+    currencySel.value = q.currency||currencySel.value;
+    localStorage.setItem('currency', currencySel.value);
+    renderFields(); // resets numeric area & symbols
+    $('salePrice').value = q.sale||0;
+    $('down').value = q.down||0;
+    $('apr').value = q.apr||0;
+    $('term').value = q.term||0;
+    interestFree.checked = (q.apr === 0);
+    $('apr').disabled = interestFree.checked;
+    updateCurrencyUI();
+    syncMeta();
+    calcBtn.click();
+  }
 
-  $('calcBtn').addEventListener('click', ()=>{
+  function syncMeta(){
+    metaDate.textContent = todayStr();
+    metaCustomer.textContent = customerNameInp.value.trim() || '—';
+    const propBits = [propertyNameInp.value, propertyBlockInp.value && `Blok ${propertyBlockInp.value}`, propertyUnitInp.value && `No ${propertyUnitInp.value}`, propertyTypeInp.value]
+      .filter(Boolean).join(' • ');
+    metaProperty.textContent = propBits || '—';
+    metaPrepared.textContent = preparedByInp.value.trim() || '—';
+  }
+
+  // Remember currency & preparedBy
+  function loadPrefs(){
+    const savedCur = localStorage.getItem('currency');
+    if (savedCur && sym[savedCur]) currencySel.value = savedCur;
+    const savedPrepared = localStorage.getItem('preparedBy') || '';
+    preparedByInp.value = preparedByInp.value || savedPrepared;
+  }
+
+  // Calculate
+  function calculate(){
     const cur = currencySel.value;
     const { salePrice=0, down=0, apr=0, term=0 } = collectValues();
 
     const sale = Number(salePrice)||0;
     const downPay = Number(down)||0;
-    const P = Math.max(0, sale - downPay); // Teslim Sonrası Bakiye
+    const P = Math.max(0, sale - downPay); // balance
     const n = Number(term||0);
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
@@ -176,11 +283,6 @@ Total Interest,${meta.totalInterest}
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
     payoffDate.textContent = end.toLocaleDateString();
 
-    // Meta
-    if (metaDate) metaDate.textContent = todayStr();
-    syncCustomer();
-    syncProperty();
-
     summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
     // Table
@@ -191,30 +293,120 @@ Total Interest,${meta.totalInterest}
     </tr>`).join('');
     scheduleWrap.style.display = 'block';
 
+    // Chart
+    drawChart([{bal:P}, ...rows], payment);
+
     // CSV meta
-    exportBtn.dataset.csv = toCSV(rows, {
-      date: metaDate?.textContent || todayStr(),
-      customer: metaCustomer?.textContent || '',
-      property: metaProperty?.textContent || '',
-      currency: cur,
-      sale: (sale||0).toFixed(2),
-      down: (downPay||0).toFixed(2),
-      balance: (P||0).toFixed(2),
-      totalInstallments: (totalInstallments||0).toFixed(2),
-      totalInterest: (totalInterestBurden||0).toFixed(2)
-    });
+    exportBtn.dataset.csv = (function(){
+      return toCSV(rows, {
+        date: metaDate.textContent || todayStr(),
+        preparedBy: preparedByInp.value || '',
+        customer: customerNameInp.value || '',
+        phone: customerPhoneInp.value || '',
+        email: customerEmailInp.value || '',
+        property: propertyNameInp.value || '',
+        block: propertyBlockInp.value || '',
+        unit: propertyUnitInp.value || '',
+        type: propertyTypeInp.value || '',
+        currency: cur,
+        sale: (sale||0).toFixed(2),
+        down: (downPay||0).toFixed(2),
+        balance: (P||0).toFixed(2),
+        totalInstallments: (totalInstallments||0).toFixed(2),
+        totalInterest: (totalInterestBurden||0).toFixed(2)
+      });
+    })();
+  }
+
+  // Events
+  currencySel.addEventListener('change', ()=>{
+    localStorage.setItem('currency', currencySel.value);
+    updateCurrencyUI();
+  });
+  compoundSel.addEventListener('change', ()=>{ /* no-op */ });
+
+  interestFree.addEventListener('change', ()=>{
+    const aprInput = $('apr');
+    if (interestFree.checked){ aprInput.value = 0; aprInput.disabled = true; }
+    else { aprInput.disabled = false; }
   });
 
-  $('resetBtn').addEventListener('click', ()=>{
-    if (customerInput) customerInput.value = '';
-    if (propertyInput) propertyInput.value = '';
-    if (metaCustomer) metaCustomer.textContent = '—';
-    if (metaProperty) metaProperty.textContent = '—';
-    if (metaDate) metaDate.textContent = todayStr();
+  preparedByInp.addEventListener('input', ()=>{
+    localStorage.setItem('preparedBy', preparedByInp.value||'');
+    metaPrepared.textContent = preparedByInp.value.trim() || '—';
+  });
+
+  [customerNameInp, customerPhoneInp, customerEmailInp,
+   propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp]
+   .forEach(inp=> inp && inp.addEventListener('input', syncMeta));
+
+  $('presets')?.addEventListener('click', (e)=>{
+    const b = e.target.closest('.chip');
+    if(!b) return;
+    renderFields();
+    $('salePrice').value = Number(b.dataset.sale||0);
+    $('down').value = Number(b.dataset.down||0);
+    $('apr').value = Number(b.dataset.apr||0);
+    $('term').value = Number(b.dataset.term||0);
+    calculate();
+  });
+
+  calcBtn.addEventListener('click', ()=>{ syncMeta(); calculate(); });
+  resetBtn.addEventListener('click', ()=>{
+    [customerNameInp, customerPhoneInp, customerEmailInp,
+     propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp].forEach(i=> i && (i.value=''));
+    syncMeta();
     renderFields();
   });
 
+  exportBtn.addEventListener('click', ()=>{
+    const csv = exportBtn.dataset.csv || '';
+    if(!csv){ alert('Bu ekran için dışa aktarılacak amortisman yok.'); return; }
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'odeme_plani.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  printBtn.addEventListener('click', ()=> window.print());
+
+  saveQuoteBtn.addEventListener('click', ()=>{
+    // Save current inputs + key results
+    const cur = getCurrency();
+    const { salePrice, down, apr, term } = collectValues();
+    if (!salePrice || !term){ alert('Kaydetmek için Satış Fiyatı ve Vade gerekli.'); return; }
+    const q = {
+      date: todayStr(),
+      preparedBy: preparedByInp.value||'',
+      customer: customerNameInp.value||'',
+      phone: customerPhoneInp.value||'',
+      email: customerEmailInp.value||'',
+      property: propertyNameInp.value||'',
+      block: propertyBlockInp.value||'',
+      unit: propertyUnitInp.value||'',
+      type: propertyTypeInp.value||'',
+      currency: cur,
+      sale: Number(salePrice)||0,
+      down: Number(down)||0,
+      apr: Number(apr)||0,
+      term: Number(term)||0
+    };
+    const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
+  });
+
+  clearQuotesBtn.addEventListener('click', ()=>{
+    if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
+  });
+
   // Init
-  if (metaDate) metaDate.textContent = todayStr();
-  renderFields();
+  (function init(){
+    // load prefs and saved quotes
+    loadPrefs();
+    renderFields();
+    updateCurrencyUI();
+    syncMeta();
+    renderSavedList();
+  })();
 })();

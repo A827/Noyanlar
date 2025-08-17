@@ -9,7 +9,7 @@
 </head>
 <body>
   <!-- BRAND BAR -->
-  <header class="brandbar">
+  <header class="brandbar no-print">
     <div class="brand-left">
       <div class="brand-logo" aria-hidden="true">
         <svg viewBox="0 0 256 256" width="28" height="28" role="img">
@@ -27,7 +27,7 @@
     </nav>
   </header>
 
-  <main class="wrap">
+  <main class="wrap print-area">
     <div class="page-head">
       <h1>Ödeme Planı</h1>
       <span class="badge" id="currencyBadge">Para Birimi: GBP (£)</span>
@@ -36,6 +36,43 @@
     <div class="grid">
       <!-- LEFT: FORM -->
       <section class="card form-card">
+        <!-- Sales & property meta -->
+        <div class="inputs-grid">
+          <div class="field">
+            <label for="preparedBy">Hazırlayan (Satış Temsilcisi)</label>
+            <input id="preparedBy" type="text" placeholder="Ad Soyad" />
+          </div>
+          <div class="field">
+            <label for="customerName">Müşteri Adı</label>
+            <input id="customerName" type="text" placeholder="Ad Soyad" />
+          </div>
+          <div class="field">
+            <label for="customerPhone">Telefon</label>
+            <input id="customerPhone" type="tel" placeholder="+90 ..." />
+          </div>
+          <div class="field">
+            <label for="customerEmail">E-posta</label>
+            <input id="customerEmail" type="email" placeholder="musteri@example.com" />
+          </div>
+          <div class="field">
+            <label for="propertyName">Proje / Daire Adı</label>
+            <input id="propertyName" type="text" placeholder="Örn. Olea Residence A2-12" />
+          </div>
+          <div class="field">
+            <label for="propertyBlock">Blok</label>
+            <input id="propertyBlock" type="text" placeholder="A / B / C" />
+          </div>
+          <div class="field">
+            <label for="propertyUnit">Daire No</label>
+            <input id="propertyUnit" type="text" placeholder="12" />
+          </div>
+          <div class="field">
+            <label for="propertyType">Tip</label>
+            <input id="propertyType" type="text" placeholder="1+1 / 2+1 / Villa ..." />
+          </div>
+        </div>
+
+        <!-- Currency & compounding -->
         <div class="form-grid">
           <div class="field">
             <label>Para Birimi</label>
@@ -45,7 +82,6 @@
               <option value="USD">USD ($)</option>
             </select>
           </div>
-
           <div class="field">
             <label>Bileşik Dönem</label>
             <select id="compound">
@@ -54,35 +90,31 @@
               <option value="1">Yıllık (1)</option>
             </select>
           </div>
-        </div>
-
-        <!-- ALWAYS VISIBLE: Customer & Property -->
-        <div class="inputs-grid" style="margin-top:10px">
-          <div class="field">
-            <label for="customerName">Müşteri Adı</label>
-            <input id="customerName" type="text" placeholder="Ad Soyad" />
-          </div>
-          <div class="field">
-            <label for="propertyName">Proje / Daire Adı</label>
-            <input id="propertyName" type="text" placeholder="Örn. Sea Pearl B3-12" />
+          <div class="field checkbox">
+            <label class="chk">
+              <input type="checkbox" id="interestFree" />
+              <span>Faizsiz Plan (APR %0)</span>
+            </label>
           </div>
         </div>
 
         <!-- Presets -->
-        <div id="presets" class="presets">
+        <div id="presets" class="presets no-print">
           <span class="muted">Hazır Planlar:</span>
           <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">£75,000 • £20,000 • 120 ay @ %8</button>
           <button class="chip" data-sale="75000" data-down="20000" data-apr="5.5" data-term="120">£75,000 • £20,000 • 120 ay @ %5.5</button>
           <button class="chip" data-sale="75000" data-down="20000" data-apr="3.75" data-term="120">£75,000 • £20,000 • 120 ay @ %3.75</button>
         </div>
 
-        <!-- NUMERIC INPUTS (rendered by JS) -->
+        <!-- Numeric inputs (rendered by JS) -->
         <div id="inputs" class="inputs-grid"></div>
 
-        <div class="actions">
+        <div class="actions no-print">
           <button class="btn" id="calcBtn">Hesapla</button>
           <button class="btn secondary" id="resetBtn">Sıfırla</button>
           <button class="btn outline" id="exportBtn" title="CSV dışa aktar">CSV Dışa Aktar</button>
+          <button class="btn ghost" id="printBtn">Yazdır / PDF</button>
+          <button class="btn gold" id="saveQuoteBtn" title="Bu planı kaydet">Planı Kaydet</button>
         </div>
 
         <p class="note">Not: Yıllık faiz oranı (APR) seçtiğiniz bileşik döneme göre periyot başına orana dönüştürülür.</p>
@@ -109,6 +141,7 @@
           <div><span>Tarih</span><strong id="metaDate">—</strong></div>
           <div><span>Müşteri</span><strong id="metaCustomer">—</strong></div>
           <div><span>Proje/Daire</span><strong id="metaProperty">—</strong></div>
+          <div><span>Hazırlayan</span><strong id="metaPrepared">—</strong></div>
         </div>
 
         <div class="stats">
@@ -125,7 +158,20 @@
           <div class="stat"><span>Toplam Ödeme (taksitler)</span><strong id="totalPaid">—</strong></div>
           <div class="stat"><span>Tahmini Bitiş</span><strong id="payoffDate">—</strong></div>
         </div>
+
+        <!-- Simple chart -->
+        <canvas id="chart" width="600" height="220" class="chart"></canvas>
+
         <p class="muted" id="summary">Değerleri girip “Hesapla”ya basın.</p>
+
+        <!-- Saved quotes -->
+        <div class="saved box no-print">
+          <div class="saved-head">
+            <h3>Kaydedilen Planlar</h3>
+            <button class="btn tiny secondary" id="clearQuotesBtn">Tümünü Sil</button>
+          </div>
+          <ul id="savedList" class="saved-list"></ul>
+        </div>
       </aside>
     </div>
   </main>
@@ -133,9 +179,11 @@
   <footer class="site-footer">
     <div>© <span id="year"></span> Noyanlar Group • Tüm hakları saklıdır.</div>
     <div class="footer-links">
-      <a href="https://noyanlar.com/" target="_blank" rel="noopener">noyanlar.com</a>
+      <span>Tel: +90 392 000 00 00</span>
       <span>•</span>
-      <a href="#" id="printBtn">PDF/Print</a>
+      <a href="mailto:sales@noyanlar.com">sales@noyanlar.com</a>
+      <span>•</span>
+      <a href="https://noyanlar.com/" target="_blank" rel="noopener">noyanlar.com</a>
     </div>
   </footer>
 
