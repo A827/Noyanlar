@@ -5,8 +5,8 @@
 
 /* THEME TOKENS (Dark default) */
 :root{
-  --brand:#8b1c23;            /* Noyanlar burgundy */
-  --brand-2:#caa46a;          /* Noyanlar gold */
+  --brand:#8b1c23;
+  --brand-2:#caa46a;
 
   --bg:#0f1118;
   --card:#101629;
@@ -86,9 +86,7 @@ body{
     linear-gradient(120deg, color-mix(in srgb, #0b0f1a 70%, var(--bg)), var(--bg) 40%, color-mix(in srgb, #0b0f1a 70%, var(--bg)));
 }
 
-/* ==============================
-   BRAND BAR
-   ============================== */
+/* BRAND BAR */
 .brandbar{
   position:sticky; top:0; z-index:10;
   display:flex; align-items:center; justify-content:space-between;
@@ -106,9 +104,7 @@ body{
 }
 .nav-link:hover{box-shadow:0 0 0 3px var(--chip-hover)}
 
-/* ==============================
-   PAGE LAYOUT
-   ============================== */
+/* PAGE LAYOUT */
 .wrap{max-width:1200px;margin:26px auto;padding:0 16px; position:relative}
 .page-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
 .page-head h1{margin:0; font-size:clamp(24px,3vw,36px)}
@@ -127,9 +123,7 @@ body{
   overflow:hidden;
 }
 
-/* ==============================
-   FORM AREA
-   ============================== */
+/* FORM AREA */
 .form-card{padding:18px}
 .form-grid{
   display:grid; gap:12px;
@@ -143,41 +137,31 @@ body{
 @media(min-width:980px){ .inputs-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
 
 /* Fields */
-.field{ display:flex; flex-direction:column; gap:6px; }
-label{ font-size:12px; color:var(--muted); margin-bottom:6px; display:block; }
+.field{display:flex; flex-direction:column; gap:6px}
+label{font-size:12px; color:var(--muted); margin-bottom:6px; display:block}
 input,select{
   width:100%; padding:12px 14px; border-radius:12px;
   border:1px solid var(--line); background:var(--chip); color:var(--ink); outline:none;
 }
-
-/* Focus */
-input:focus, select:focus{
+input:focus,select:focus{
   border-color:var(--brand-2);
   box-shadow:0 0 0 3px var(--chip-hover, rgba(202,164,106,0.18));
 }
 @supports (color: color-mix(in srgb, #000 50%, #fff 50%)){
-  input:focus, select:focus{ border-color:color-mix(in srgb, var(--brand-2) 40%, var(--line)); }
+  input:focus,select:focus{ border-color:color-mix(in srgb, var(--brand-2) 40%, var(--line)); }
 }
-
-/* Currency symbol prefix */
 .prefix-wrap{position:relative}
-.prefix-wrap .prefix{
-  position:absolute; left:10px; top:50%; transform:translateY(-50%);
-  opacity:.9; font-weight:700; pointer-events:none;
-}
+.prefix-wrap .prefix{position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:.9; font-weight:700; pointer-events:none;}
 .prefix-wrap input{padding-left:34px}
 
 /* Checkbox */
-.checkbox .chk{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.checkbox .chk span{ word-break:break-word; overflow-wrap:anywhere; line-height:1.2; }
+.checkbox .chk{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.checkbox .chk span{word-break:break-word; overflow-wrap:anywhere; line-height:1.2}
 
 /* Preset chips */
 .presets{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0 6px}
 .muted{color:var(--muted); font-size:12px}
-.chip{
-  border:1px solid var(--chip-border); background:var(--chip); color:var(--ink);
-  border-radius:999px; padding:8px 12px; cursor:pointer
-}
+.chip{border:1px solid var(--chip-border); background:var(--chip); color:var(--ink); border-radius:999px; padding:8px 12px; cursor:pointer}
 .chip:hover{box-shadow:0 0 0 3px var(--chip-hover)}
 
 /* Actions */
@@ -195,13 +179,8 @@ input:focus, select:focus{
 /* Helper note */
 .note{margin:12px 0 8px; font-size:12px; color:var(--muted)}
 
-/* ==============================
-   TABLE
-   ============================== */
-.table-wrap{
-  max-height:420px; overflow:auto;
-  border:1px solid var(--line); border-radius:12px; background:var(--card)
-}
+/* TABLE */
+.table-wrap{ max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:12px; background:var(--card) }
 table{width:100%; border-collapse:collapse; background:var(--chip)}
 th,td{ padding:12px 10px; border-bottom:1px solid var(--line); text-align:right }
 th:first-child,td:first-child{text-align:left}
@@ -209,15 +188,12 @@ thead th{position:sticky; top:0; background:var(--table-head); z-index:1}
 tbody tr:nth-child(odd){background:var(--table-alt)}
 tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2) 5%)}
 
-/* ==============================
-   SUMMARY
-   ============================== */
+/* SUMMARY PANEL */
 .summary-card{padding:18px; position:relative; background:var(--card)}
 .meta{ display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr)); margin-bottom:10px; }
 @media(min-width:980px){ .meta{ grid-template-columns: repeat(4, minmax(0,1fr)); } }
 .meta span{font-size:12px; color:var(--muted)}
 .meta strong{display:block; font-size:16px; font-weight:800}
-
 .stats{display:grid; gap:12px; grid-template-columns:repeat(2,minmax(0,1fr))}
 .stat{ background:var(--chip); border:1px solid var(--line); border-radius:14px; padding:12px }
 .stat span{font-size:12px; color:var(--muted)}
@@ -236,9 +212,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
 .saved-list .actions{gap:6px}
 .saved-list .id{font-size:12px; color:var(--muted)}
 
-/* ==============================
-   FOOTER
-   ============================== */
+/* FOOTER */
 .site-footer{
   max-width:1200px; margin:22px auto 32px; padding:0 16px;
   color:var(--muted); display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -248,9 +222,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
 .site-footer a:hover{color:var(--brand-2)}
 .footer-links{display:flex; gap:10px; align-items:center}
 
-/* ==============================
-   PRINT
-   ============================== */
+/* PRINT */
 .print-area::before{
   content:"Noyanlar";
   position:fixed; inset:auto 0 20% 0; text-align:center;
@@ -265,9 +237,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
   .site-footer{border-top-color:#ddd; color:#333}
 }
 
-/* ==============================
-   RESPONSIVE
-   ============================== */
+/* RESPONSIVE TWEAKS */
 @media (max-width: 900px){
   .form-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
@@ -275,7 +245,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
   .form-grid{ grid-template-columns:1fr; }
 }
 
-/* ====== PDF extras ====== */
+/* ====== PDF / Print styles ====== */
 .print-only{ display:none; }
 @media print {
   @page { size: A4; margin: 14mm; }
@@ -288,38 +258,32 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
   .print-header, .summary-card { break-inside: avoid; }
   table, tr, td, th { break-inside: avoid; }
   .grid{ display:block !important; }
+  .print-header .ph-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:12px; }
+  .print-header .ph-meta{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px 16px; }
+  .print-header .ph-meta span{ font-size:12px; color:#555; }
+  .print-header .ph-meta strong{ font-size:14px; }
+  .print-footer{ margin-top:16px; padding:12px; }
+  .print-footer .pf-grid{ display:flex; gap:40px; }
+  .print-footer .line{ height:1.2em; border-bottom:1px solid #333; width:220px; }
+  .print-footer .pf-contact{ margin-top:10px; font-size:12px; color:#333; }
 }
 
-/* ==============================
-   MODAL (full-screen admin)
-   ============================== */
+/* ===== Fullscreen Admin Modal ===== */
 .modal-backdrop{
-  position:fixed; inset:0; background:color-mix(in srgb, var(--bg) 80%, #000);
-  display:none; align-items:stretch; justify-content:center; z-index:200;
+  position:fixed; inset:0; display:none; z-index:200;
+  background:color-mix(in srgb, var(--bg) 80%, black 20%);
 }
 .modal-backdrop.show{ display:flex; }
-.modal.fullscreen{
-  width:100%; max-width:1200px; margin:0 auto; height:100vh; background:var(--card); color:var(--ink);
-  border-left:1px solid var(--line); border-right:1px solid var(--line);
-  display:flex; flex-direction:column;
+.modal{
+  margin:auto; width:min(1100px, 96%); max-height:90vh; overflow:auto;
+  background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:18px;
+  box-shadow:var(--shadow); padding:16px;
 }
-.modal-header{
-  display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:14px 16px; border-bottom:1px solid var(--line);
+.modal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.modal-body{ display:grid; gap:12px; }
+.modal-grid{ grid-template-columns:1fr 1fr; }
+@media(max-width:900px){ .modal-grid{ grid-template-columns:1fr; } }
+.modal-card{
+  background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:12px;
 }
-.modal-body{
-  padding:16px; overflow:auto; flex:1;
-}
-.grid-2{
-  display:grid; gap:16px; grid-template-columns:repeat(2, minmax(0,1fr));
-}
-@media(max-width: 900px){ .grid-2{ grid-template-columns:1fr; } }
-.panel-like{
-  background:var(--chip); border:1px solid var(--line); border-radius:14px; padding:12px;
-}
-.user-row{
-  display:grid; gap:8px; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr; align-items:center;
-  border:1px solid var(--line); border-radius:12px; padding:10px; margin:8px 0; background:var(--chip);
-}
-.user-row .row-actions{ display:flex; gap:8px; justify-content:flex-end; }
-.user-row .role{ min-width:110px; }
+.saved-list-item{ /* list rows inside modal */ }
