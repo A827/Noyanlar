@@ -253,6 +253,7 @@ Total Interest,${meta.totalInterest}
   function ensureDefaults(){
     if (!localStorage.getItem(PIN_KEY)) localStorage.setItem(PIN_KEY, '0000'); // default PIN
     if (!localStorage.getItem(USERS_KEY)) {
+      // default user has NO password; login will refuse until admin sets one
       setUsers([{id:crypto.randomUUID?.()||String(Date.now()), name:'Satış Ekibi', email:'', phone:'', pass:''}]);
     } else {
       renderUsersUI();
@@ -261,10 +262,11 @@ Total Interest,${meta.totalInterest}
   function renderUsersUI(){
     const users = getUsers();
 
-    // auth gate dropdown
+    // auth gate dropdown (with placeholder to prevent auto-selection)
     if (loginUserSel){
       const current = loginUserSel.value;
-      loginUserSel.innerHTML = users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+      loginUserSel.innerHTML = `<option value="">— Kullanıcı seçin —</option>` +
+        users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
       if (users.some(u=>u.id===current)) loginUserSel.value = current;
     }
 
@@ -328,18 +330,35 @@ Total Interest,${meta.totalInterest}
 
   function login(){
     const users = getUsers();
-    const uid = loginUserSel.value;
+    const uid = (loginUserSel && loginUserSel.value) || '';
+    if (!uid){ alert('Lütfen kullanıcı seçin.'); return; }
+
     const user = users.find(u=>u.id===uid);
     if (!user){ alert('Kullanıcı bulunamadı'); return; }
-    const input = (loginPass.value||'');
-    const ok = (user.pass||'') === (input||'');
-    if (!ok){ alert('Şifre hatalı'); return; }
+
+    const input = (loginPass.value||'').trim();
+
+    // Enforce: non-empty password and must match stored password
+    if (!user.pass){
+      alert('Bu kullanıcı için şifre ayarlanmamış. Lütfen Admin ile şifre belirleyin.');
+      return;
+    }
+    if (!input){
+      alert('Lütfen şifre girin.');
+      return;
+    }
+    if (user.pass !== input){
+      alert('Şifre hatalı');
+      return;
+    }
+
+    // success
     sessionStorage.setItem(AUTH_USER_KEY, uid);
-    // Set preparedBy + dropdowns
     preparedByInp.value = user.name || '';
     localStorage.setItem('preparedBy', preparedByInp.value||'');
     if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
     if (activeUserSel){ activeUserSel.value = uid; }
+    loginPass.value = '';
     showAppUI(true);
   }
 
@@ -348,7 +367,6 @@ Total Interest,${meta.totalInterest}
     if (!uid) { showAppUI(false); return; }
     const user = getUsers().find(u=>u.id===uid);
     if (!user) { sessionStorage.removeItem(AUTH_USER_KEY); showAppUI(false); return; }
-    // hydrate UI
     preparedByInp.value = user.name || '';
     localStorage.setItem('preparedBy', preparedByInp.value||'');
     if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
@@ -358,7 +376,7 @@ Total Interest,${meta.totalInterest}
 
   function logout(){
     sessionStorage.removeItem(AUTH_USER_KEY);
-    loginPass.value = '';
+    if (loginPass) loginPass.value = '';
     showAppUI(false);
   }
 
@@ -560,7 +578,7 @@ Total Interest,${meta.totalInterest}
       name,
       email: (newUserEmail.value||'').trim(),
       phone: (newUserPhone.value||'').trim(),
-      pass: (newUserPass.value||'')
+      pass: (newUserPass.value||'').trim()
     });
     setUsers(users);
     newUserName.value = ''; newUserEmail.value=''; newUserPhone.value=''; newUserPass.value='';
@@ -591,7 +609,7 @@ Total Interest,${meta.totalInterest}
       const u = users.find(x=>x.id===passId);
       if (!u) return;
       const p = prompt('Yeni şifre (boş bırak = şifresiz):', u.pass||'');
-      if (p !== null){ u.pass = p; setUsers(users); }
+      if (p !== null){ u.pass = (p||'').trim(); setUsers(users); }
     }
   });
 
