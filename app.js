@@ -57,19 +57,16 @@
   const metaProperty = $('metaProperty');
   const metaPrepared = $('metaPrepared');
 
-  // business summary
-  const sbSale = $('sbSale');
-  const sbDown = $('sbDown');
-  const sbBalance = $('sbBalance');
-  const sbBalancePlusInterest = $('sbBalancePlusInterest');
-  const sbTotalBurden = $('sbTotalBurden');
-
-  // technical summary
-  const primaryValue = $('primaryValue');
-  const loanAmountEl = $('loanAmount');
-  const totalPaid = $('totalPaid');
-  const payoffDate = $('payoffDate');
-  const summary = $('summary');
+  // auth gate
+  const authGate = $('authGate');
+  const loginUserSel = $('loginUserSel');
+  const loginPass = $('loginPass');
+  const loginBtn = $('loginBtn');
+  const openAdminFromGate = $('openAdminFromGate');
+  const appHeader = $('appHeader');
+  const appMain = $('appMain');
+  const appFooter = $('appFooter');
+  const logoutBtn = $('logoutBtn');
 
   // table & export & save
   const scheduleWrap = $('scheduleWrap');
@@ -90,6 +87,7 @@
   const newUserName = $('newUserName');
   const newUserEmail = $('newUserEmail');
   const newUserPhone = $('newUserPhone');
+  const newUserPass = $('newUserPass');
   const usersList = $('usersList');
   const changePinBtn = $('changePinBtn');
   const oldPin = $('oldPin');
@@ -128,17 +126,19 @@
     `;
 
     scheduleWrap.style.display='none';
-    [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
-      .forEach(el=> el.textContent='—');
-    summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
-    metaDate.textContent = todayStr();
+    [metaDate, metaCustomer, metaProperty, metaPrepared].forEach(el=> el && (el.textContent='—'));
+    ['primaryValue','loanAmount','totalPaid','payoffDate','sbSale','sbDown','sbBalance','sbBalancePlusInterest','sbTotalBurden']
+      .forEach(id=> { const el=$(id); if(el) el.textContent='—'; });
+    const summary = $('summary'); if (summary) summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
+    if (metaDate) metaDate.textContent = todayStr();
 
     preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
-    metaPrepared.textContent = preparedByInp.value || '—';
+    if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
   }
 
   function updateCurrencyUI(){
-    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${getSymbol()})`;
+    const currencyBadge = $('currencyBadge');
+    if (currencyBadge) currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${getSymbol()})`;
     const sale = $('symSale'), down = $('symDown');
     if (sale) sale.textContent = getSymbol();
     if (down) down.textContent = getSymbol();
@@ -241,6 +241,7 @@ Total Interest,${meta.totalInterest}
   // ===== USERS (Admin) =====
   const USERS_KEY = 'users';
   const PIN_KEY = 'admin_pin';
+  const AUTH_USER_KEY = 'auth_user'; // sessionStorage key
 
   function getUsers(){
     try{ return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }catch{ return []; }
@@ -252,20 +253,29 @@ Total Interest,${meta.totalInterest}
   function ensureDefaults(){
     if (!localStorage.getItem(PIN_KEY)) localStorage.setItem(PIN_KEY, '0000'); // default PIN
     if (!localStorage.getItem(USERS_KEY)) {
-      setUsers([{id:crypto.randomUUID?.()||String(Date.now()), name:'Satış Ekibi', email:'', phone:''}]);
+      setUsers([{id:crypto.randomUUID?.()||String(Date.now()), name:'Satış Ekibi', email:'', phone:'', pass:''}]);
     } else {
       renderUsersUI();
     }
   }
   function renderUsersUI(){
-    // populate dropdown
     const users = getUsers();
-    if (activeUserSel){
-      const current = activeUserSel.value;
-      activeUserSel.innerHTML = `<option value="">—</option>` + users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
-      if (users.some(u=>u.id===current)) activeUserSel.value = current;
+
+    // auth gate dropdown
+    if (loginUserSel){
+      const current = loginUserSel.value;
+      loginUserSel.innerHTML = users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+      if (users.some(u=>u.id===current)) loginUserSel.value = current;
     }
-    // list in modal
+
+    // in-app user dropdown
+    if (activeUserSel){
+      const current2 = activeUserSel.value;
+      activeUserSel.innerHTML = `<option value="">—</option>` + users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+      if (users.some(u=>u.id===current2)) activeUserSel.value = current2;
+    }
+
+    // list in admin modal
     if (usersList){
       usersList.innerHTML = users.map(u=>`
         <div class="list-item">
@@ -275,12 +285,14 @@ Total Interest,${meta.totalInterest}
           </div>
           <div>
             <button class="btn tiny" data-edit="${u.id}">Düzenle</button>
+            <button class="btn tiny" data-pass="${u.id}">Şifre</button>
             <button class="btn tiny secondary" data-del="${u.id}">Sil</button>
           </div>
         </div>
       `).join('');
     }
   }
+
   function requirePin(){
     const pin = prompt('Admin PIN:');
     if (!pin) return false;
@@ -296,17 +308,68 @@ Total Interest,${meta.totalInterest}
     if (!u) return;
     preparedByInp.value = u.name || '';
     localStorage.setItem('preparedBy', preparedByInp.value||'');
-    metaPrepared.textContent = preparedByInp.value || '—';
+    if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
+  }
+
+  // ===== AUTH FLOW =====
+  function showAppUI(show){
+    if (show){
+      authGate.classList.add('hidden');
+      appHeader.classList.remove('hidden');
+      appMain.classList.remove('hidden');
+      appFooter.classList.remove('hidden');
+    } else {
+      authGate.classList.remove('hidden');
+      appHeader.classList.add('hidden');
+      appMain.classList.add('hidden');
+      appFooter.classList.add('hidden');
+    }
+  }
+
+  function login(){
+    const users = getUsers();
+    const uid = loginUserSel.value;
+    const user = users.find(u=>u.id===uid);
+    if (!user){ alert('Kullanıcı bulunamadı'); return; }
+    const input = (loginPass.value||'');
+    const ok = (user.pass||'') === (input||'');
+    if (!ok){ alert('Şifre hatalı'); return; }
+    sessionStorage.setItem(AUTH_USER_KEY, uid);
+    // Set preparedBy + dropdowns
+    preparedByInp.value = user.name || '';
+    localStorage.setItem('preparedBy', preparedByInp.value||'');
+    if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
+    if (activeUserSel){ activeUserSel.value = uid; }
+    showAppUI(true);
+  }
+
+  function tryAutoLogin(){
+    const uid = sessionStorage.getItem(AUTH_USER_KEY);
+    if (!uid) { showAppUI(false); return; }
+    const user = getUsers().find(u=>u.id===uid);
+    if (!user) { sessionStorage.removeItem(AUTH_USER_KEY); showAppUI(false); return; }
+    // hydrate UI
+    preparedByInp.value = user.name || '';
+    localStorage.setItem('preparedBy', preparedByInp.value||'');
+    if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
+    if (activeUserSel){ activeUserSel.value = uid; }
+    showAppUI(true);
+  }
+
+  function logout(){
+    sessionStorage.removeItem(AUTH_USER_KEY);
+    loginPass.value = '';
+    showAppUI(false);
   }
 
   // ===== META SYNC =====
   function syncMeta(){
-    metaDate.textContent = todayStr();
-    metaCustomer.textContent = customerNameInp.value.trim() || '—';
+    if (metaDate)      metaDate.textContent = todayStr();
+    if (metaCustomer)  metaCustomer.textContent = (customerNameInp.value.trim() || '—');
     const propBits = [propertyNameInp.value, propertyBlockInp.value && `Blok ${propertyBlockInp.value}`, propertyUnitInp.value && `No ${propertyUnitInp.value}`, propertyTypeInp.value]
       .filter(Boolean).join(' • ');
-    metaProperty.textContent = propBits || '—';
-    metaPrepared.textContent = preparedByInp.value.trim() || '—';
+    if (metaProperty)  metaProperty.textContent = propBits || '—';
+    if (metaPrepared)  metaPrepared.textContent = (preparedByInp.value.trim() || '—');
   }
 
   // ===== PREFS =====
@@ -329,7 +392,9 @@ Total Interest,${meta.totalInterest}
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
 
-    if(n<=0){ summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
+    const summary = $('summary');
+
+    if(n<=0){ if(summary) summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
 
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
@@ -337,24 +402,25 @@ Total Interest,${meta.totalInterest}
     const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0);
     const totalInterestBurden = (downPay + totalInstallments) - sale;
 
-    // Business summary
-    sbSale.textContent = fmt(sale, cur);
-    sbDown.textContent = fmt(downPay, cur);
-    sbBalance.textContent = fmt(P, cur);
-    sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
-    sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
+    const sbSale = $('sbSale'), sbDown=$('sbDown'), sbBalance=$('sbBalance'),
+          sbBalancePlusInterest=$('sbBalancePlusInterest'), sbTotalBurden=$('sbTotalBurden');
+    if (sbSale) sbSale.textContent = fmt(sale, cur);
+    if (sbDown) sbDown.textContent = fmt(downPay, cur);
+    if (sbBalance) sbBalance.textContent = fmt(P, cur);
+    if (sbBalancePlusInterest) sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
+    if (sbTotalBurden) sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
 
-    // Technical summary
-    primaryValue.textContent = fmt(payment,cur);
-    loanAmountEl.textContent = fmt(P,cur);
-    totalPaid.textContent = fmt(totalInstallments,cur);
+    const primaryValue = $('primaryValue'), loanAmountEl = $('loanAmount'),
+          totalPaid = $('totalPaid'), payoffDate = $('payoffDate');
+    if (primaryValue) primaryValue.textContent = fmt(payment,cur);
+    if (loanAmountEl) loanAmountEl.textContent = fmt(P,cur);
+    if (totalPaid) totalPaid.textContent = fmt(totalInstallments,cur);
 
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
-    payoffDate.textContent = end.toLocaleDateString();
+    if (payoffDate) payoffDate.textContent = end.toLocaleDateString();
 
-    summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
+    if (summary) summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
-    // Table
     scheduleBody.innerHTML = rows.map(rw=>`<tr>
       <td>${rw.k}</td>
       <td>${fmt(rw.pay,cur)}</td>
@@ -362,9 +428,8 @@ Total Interest,${meta.totalInterest}
     </tr>`).join('');
     scheduleWrap.style.display = 'block';
 
-    // CSV meta
     exportBtn.dataset.csv = toCSV(rows, {
-      date: metaDate.textContent || todayStr(),
+      date: metaDate?.textContent || todayStr(),
       preparedBy: preparedByInp.value || '',
       customer: customerNameInp.value || '',
       phone: customerPhoneInp.value || '',
@@ -383,7 +448,6 @@ Total Interest,${meta.totalInterest}
   }
 
   // ===== EVENTS =====
-  // PDF filename
   printBtn?.addEventListener('click', ()=>{
     const customer = (customerNameInp.value || 'Musteri').trim().replace(/\s+/g,'_');
     const property = (propertyNameInp.value || 'Proje').trim().replace(/\s+/g,'_');
@@ -408,7 +472,7 @@ Total Interest,${meta.totalInterest}
 
   preparedByInp.addEventListener('input', ()=>{
     localStorage.setItem('preparedBy', preparedByInp.value||'');
-    metaPrepared.textContent = preparedByInp.value.trim() || '—';
+    if (metaPrepared) metaPrepared.textContent = preparedByInp.value.trim() || '—';
   });
   activeUserSel.addEventListener('change', onActiveUserChange);
 
@@ -479,6 +543,11 @@ Total Interest,${meta.totalInterest}
     if (!requirePin()) return;
     adminModal.style.display = 'flex';
   });
+  openAdminFromGate?.addEventListener('click', ()=>{
+    if (!requirePin()) return;
+    adminModal.style.display = 'flex';
+  });
+
   adminClose?.addEventListener('click', ()=> adminModal.style.display = 'none');
   adminModal?.addEventListener('click', (e)=>{ if (e.target === adminModal) adminModal.style.display = 'none'; });
 
@@ -490,19 +559,22 @@ Total Interest,${meta.totalInterest}
       id: crypto.randomUUID?.() || String(Date.now()),
       name,
       email: (newUserEmail.value||'').trim(),
-      phone: (newUserPhone.value||'').trim()
+      phone: (newUserPhone.value||'').trim(),
+      pass: (newUserPass.value||'')
     });
     setUsers(users);
-    newUserName.value = ''; newUserEmail.value=''; newUserPhone.value='';
+    newUserName.value = ''; newUserEmail.value=''; newUserPhone.value=''; newUserPass.value='';
   });
 
   usersList?.addEventListener('click', (e)=>{
     const delId = e.target?.dataset?.del;
     const editId = e.target?.dataset?.edit;
+    const passId = e.target?.dataset?.pass;
     if (delId){
       const users = getUsers().filter(u=>u.id!==delId);
       setUsers(users);
       if (activeUserSel.value === delId){ activeUserSel.value=''; onActiveUserChange(); }
+      if (loginUserSel.value === delId){ renderUsersUI(); }
     }
     if (editId){
       const users = getUsers();
@@ -513,6 +585,13 @@ Total Interest,${meta.totalInterest}
       const newPhone = prompt('Yeni telefon:', u.phone||'') || u.phone;
       u.name = newName.trim(); u.email = newEmail.trim(); u.phone = newPhone.trim();
       setUsers(users);
+    }
+    if (passId){
+      const users = getUsers();
+      const u = users.find(x=>x.id===passId);
+      if (!u) return;
+      const p = prompt('Yeni şifre (boş bırak = şifresiz):', u.pass||'');
+      if (p !== null){ u.pass = p; setUsers(users); }
     }
   });
 
@@ -526,6 +605,10 @@ Total Interest,${meta.totalInterest}
     alert('PIN güncellendi');
   });
 
+  loginBtn?.addEventListener('click', login);
+  loginPass?.addEventListener('keydown', (e)=>{ if(e.key==='Enter') login(); });
+  logoutBtn?.addEventListener('click', logout);
+
   // ===== INIT =====
   (function init(){
     ensureDefaults();
@@ -534,7 +617,7 @@ Total Interest,${meta.totalInterest}
     renderFields();
     updateCurrencyUI();
     renderUsersUI();
-    onActiveUserChange();
+    tryAutoLogin(); // decide which UI to show
     syncMeta();
     renderSavedList();
   })();

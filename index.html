@@ -8,20 +8,50 @@
   <meta name="theme-color" content="#8b1c23" />
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* tiny modal styling without touching your main CSS */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:50}
-    .modal{background:var(--card,#0b1220);color:var(--ink,#eef2f8);border:1px solid var(--line,#25324a);border-radius:16px;max-width:720px;width:96%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-    .modal header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line,#25324a)}
-    .modal .body{padding:16px 20px}
-    .modal .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .modal .list{margin-top:12px;border-top:1px dashed var(--line,#25324a)}
-    .modal .list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed var(--line,#25324a)}
-    .hidden{display:none}
+    /* Auth gate (lightweight, uses existing variables) */
+    .gate {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:var(--app,#0b1220); z-index:100; padding:24px;
+    }
+    .gate .panel {
+      width:min(560px, 96%); background:var(--card,#0f172a); color:var(--ink,#eef2f8);
+      border:1px solid var(--line,#243244); border-radius:16px; padding:20px 20px 16px;
+      box-shadow:0 24px 80px rgba(0,0,0,.45);
+    }
+    .gate .panel h1 { margin:0 0 4px; font-size:22px }
+    .gate .panel p { margin:0 0 16px; color:var(--muted,#9aa3b2) }
+    .gate .row { display:grid; grid-template-columns:1fr; gap:12px; margin:12px 0 16px }
+    .gate .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px }
+    .gate .small { font-size:12px; color:var(--muted,#9aa3b2) }
+    .hidden { display:none !important; }
   </style>
 </head>
 <body>
+  <!-- AUTH GATE -->
+  <div id="authGate" class="gate">
+    <div class="panel">
+      <h1>Noyanlar • Giriş</h1>
+      <p>Lütfen kullanıcı seçin ve şifreyi girin.</p>
+      <div class="row">
+        <div class="field">
+          <label for="loginUserSel">Kullanıcı</label>
+          <select id="loginUserSel"></select>
+        </div>
+        <div class="field">
+          <label for="loginPass">Şifre</label>
+          <input id="loginPass" type="password" placeholder="••••" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="openAdminFromGate" class="btn secondary">Admin</button>
+        <button id="loginBtn" class="btn">Giriş Yap</button>
+      </div>
+      <p class="small">Not: Bu demo yerel depolama (localStorage) kullanır. Üretimde sunucu tabanlı sisteme geçeceğiz.</p>
+    </div>
+  </div>
+
   <!-- BRAND BAR -->
-  <header class="brandbar no-print">
+  <header class="brandbar no-print hidden" id="appHeader">
     <div class="brand-left">
       <div class="brand-logo" aria-hidden="true">
         <svg viewBox="0 0 256 256" width="28" height="28" role="img">
@@ -37,11 +67,12 @@
     <nav class="brand-right">
       <button id="themeToggle" class="nav-link" aria-label="Tema değiştir">🌙/☀️</button>
       <button id="adminBtn" class="nav-link" title="Kullanıcı yönetimi">Admin</button>
+      <button id="logoutBtn" class="nav-link" title="Çıkış">Çıkış</button>
       <a href="https://noyanlar.com/" target="_blank" rel="noopener" class="nav-link">noyanlar.com</a>
     </nav>
   </header>
 
-  <main class="wrap print-area">
+  <main class="wrap print-area hidden" id="appMain">
     <div class="page-head">
       <h1>Ödeme Planı</h1>
       <span class="badge" id="currencyBadge">Para Birimi: GBP (£)</span>
@@ -156,7 +187,6 @@
 
       <!-- RIGHT: SUMMARY -->
       <aside class="card summary-card">
-        <!-- Meta header -->
         <div class="meta">
           <div><span>Tarih</span><strong id="metaDate">—</strong></div>
           <div><span>Müşteri</span><strong id="metaCustomer">—</strong></div>
@@ -192,7 +222,7 @@
     </div>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer hidden" id="appFooter">
     <div>© <span id="year"></span> Noyanlar Group • Tüm hakları saklıdır.</div>
     <div class="footer-links">
       <span>Tel: +90 392 000 00 00</span>
@@ -226,6 +256,10 @@
               <label>Telefon (opsiyonel)</label>
               <input id="newUserPhone" type="tel" placeholder="+90 ...">
             </div>
+            <div class="field">
+              <label>Şifre</label>
+              <input id="newUserPass" type="password" placeholder="••••">
+            </div>
             <button id="addUserBtn" class="btn">Ekle</button>
           </div>
           <div>
@@ -239,7 +273,7 @@
               <input id="newPin" type="password" placeholder="****">
             </div>
             <button id="changePinBtn" class="btn secondary">PIN Değiştir</button>
-            <p class="muted" style="margin-top:8px">Not: Bu basit modül tarayıcıda çalışır (localStorage). Ekip paylaşımı için daha sonra bulut ekleriz.</p>
+            <p class="muted" style="margin-top:8px">Not: Basit demo amaçlıdır (localStorage).</p>
           </div>
         </div>
 
