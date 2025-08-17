@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="auto">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -23,6 +23,7 @@
       </div>
     </div>
     <nav class="brand-right">
+      <button id="themeToggle" class="nav-link" aria-label="Tema değiştir">🌙/☀️</button>
       <a href="https://noyanlar.com/" target="_blank" rel="noopener" class="nav-link">noyanlar.com</a>
     </nav>
   </header>
@@ -159,12 +160,10 @@
           <div class="stat"><span>Tahmini Bitiş</span><strong id="payoffDate">—</strong></div>
         </div>
 
-        <!-- Simple chart -->
         <canvas id="chart" width="600" height="220" class="chart"></canvas>
 
         <p class="muted" id="summary">Değerleri girip “Hesapla”ya basın.</p>
 
-        <!-- Saved quotes -->
         <div class="saved box no-print">
           <div class="saved-head">
             <h3>Kaydedilen Planlar</h3>
