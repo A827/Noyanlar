@@ -119,76 +119,57 @@
   function getSymbol(){ return sym[currencySel.value] || ''; }
 
   /* =========================
-     AUTH / USERS (localStorage)
+     API (Cloudflare Pages Functions)
      ========================= */
-  const USERS_KEY   = 'noy_users';
-  const ADMIN_PIN_KEY = 'adminPIN';
-  const SESSION_KEY = 'noy_session_user';
-
-  function cryptoRandomId(){
-    try{
-      return ([1e7]+-1e3+-4e3+-8e3+-1e11)
-        .replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
-    }catch{
-      return 'u_' + Math.random().toString(36).slice(2,10);
+  const API_BASE = ''; // same-origin
+  async function api(path, opts = {}){
+    const res = await fetch(API_BASE + path, {
+      headers: { 'content-type': 'application/json' },
+      credentials: 'same-origin',
+      ...opts
+    });
+    const data = await res.json().catch(()=> ({}));
+    if(!res.ok){
+      const err = new Error(data.error || res.statusText || 'Request failed');
+      err.data = data; err.status = res.status;
+      throw err;
     }
+    return data;
   }
+  // Users
+  const listUsers  = () => api('/api/users', { method:'GET' });
+  const createUser = (body) => api('/api/users', { method:'POST', body: JSON.stringify(body) });
+  const updateUser = (body) => api('/api/users', { method:'PUT',  body: JSON.stringify(body) });
+  const deleteUserAPI = (id, pin) => api(`/api/users?id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`, { method:'DELETE' });
+  // Auth
+  const loginAPI   = (name, pass) => api('/api/auth/login', { method:'POST', body: JSON.stringify({ name, pass }) });
+  // Admin PIN change
+  const changePinAPI = (oldPin, newPin) => api('/api/admin/pin', { method:'POST', body: JSON.stringify({ oldPin, newPin }) });
 
-  function validUserShape(u){
-    return u && typeof u === 'object' &&
-           'id' in u && 'name' in u && 'role' in u && 'pass' in u;
-  }
-
-  function loadUsers(){
+  // Client-side session (UI only)
+  const SESSION_ID_KEY  = 'noy_session_user';
+  const SESSION_OBJ_KEY = 'noy_session_user_obj';
+  function setSessionUser(user){
     try {
-      const raw = localStorage.getItem(USERS_KEY);
-      if (!raw) return [];
-      const arr = JSON.parse(raw);
-      if (!Array.isArray(arr)) return [];
-      return arr.filter(validUserShape);
-    } catch { return []; }
+      localStorage.setItem(SESSION_ID_KEY, user?.id || '');
+      localStorage.setItem(SESSION_OBJ_KEY, JSON.stringify(user||null));
+    }catch{}
   }
-  function saveUsers(arr){
-    localStorage.setItem(USERS_KEY, JSON.stringify(arr));
-    try{ localStorage.setItem(USERS_KEY+'_ts', String(Date.now())); }catch{}
+  function clearSession(){
+    try{
+      localStorage.removeItem(SESSION_ID_KEY);
+      localStorage.removeItem(SESSION_OBJ_KEY);
+    }catch{}
   }
-
-  function seedUsersIfEmpty(){
-    let users = loadUsers();
-    if(users.length === 0){
-      users = [{
-        id: cryptoRandomId(),
-        name: 'Admin',
-        email: 'admin@noyanlar.com',
-        phone: '',
-        role: 'admin',
-        pass: '1234'
-      }];
-      saveUsers(users);
-    }
-    if(!localStorage.getItem(ADMIN_PIN_KEY)){
-      localStorage.setItem(ADMIN_PIN_KEY, '1234');
-    }
+  function currentUserObj(){
+    try{ return JSON.parse(localStorage.getItem(SESSION_OBJ_KEY) || 'null'); }catch{ return null; }
   }
-
-  function getSessionId(){ return localStorage.getItem(SESSION_KEY) || ''; }
-  function setSessionId(id){ localStorage.setItem(SESSION_KEY, id); }
-  function clearSession(){ localStorage.removeItem(SESSION_KEY); }
-
-  function getUserById(id){ return loadUsers().find(u => u.id===id); }
-  function getUserByName(name){
-    const n = (name||'').trim().toLowerCase();
-    if(!n) return null;
-    return loadUsers().find(u => (u.name||'').trim().toLowerCase() === n) || null;
-  }
-  function currentUser(){ return getUserById(getSessionId()); }
-  function isAdmin(){ return (currentUser() && currentUser().role === 'admin'); }
+  function isAdmin(){ return currentUserObj()?.role === 'admin'; }
 
   /* =========================
      ADMIN UI: TABLE + EDITOR
      ========================= */
   let selectedUserId = null;
-  // Hide the editor by default; only show when editing or adding
   let showEditor = false;
 
   function userTableHTML(users){
@@ -243,7 +224,7 @@
             <input class="input-sm" id="editPhone" type="tel" value="${escapeAttr(user.phone||'')}" placeholder="+90 ...">
           </div>
           <div class="field">
-            <label>Yeni Şifre (opsiyonel)</label>
+            <label>${user.id ? 'Yeni Şifre (opsiyonel)' : 'Şifre'}</label>
             <input class="input-sm" id="editPass" type="password" placeholder="••••">
           </div>
           <div class="field">
@@ -259,32 +240,36 @@
     `;
   }
 
-  function renderUsersPanel(){
+  async function renderUsersPanel(){
     if (!usersListBox) return;
-    const users = loadUsers();
-    const editorUser = selectedUserId ? users.find(u=>u.id===selectedUserId) : null;
+    try{
+      const users = await listUsers();
+      const editorUser = selectedUserId ? users.find(u=>u.id===selectedUserId) : null;
 
-    usersListBox.innerHTML = `
-      <div class="modal-card">
-        <h4 class="modal-section-title">Kullanıcılar</h4>
-        ${userTableHTML(users)}
-      </div>
-      ${showEditor ? `<div class="modal-card">${editorHTML(editorUser)}</div>` : ''}
-    `;
+      usersListBox.innerHTML = `
+        <div class="modal-card">
+          <h4 class="modal-section-title">Kullanıcılar</h4>
+          ${userTableHTML(users)}
+        </div>
+        ${showEditor ? `<div class="modal-card">${editorHTML(editorUser)}</div>` : ''}
+      `;
 
-    if (showEditor){
-      const editorEl = $('userEditor');
-      if (editorEl){
-        editorEl.scrollIntoView({ behavior:'smooth', block:'start' });
-        const nameEl = $('editName');
-        if (nameEl) { nameEl.focus(); nameEl.select?.(); }
+      if (showEditor){
+        const editorEl = $('userEditor');
+        if (editorEl){
+          editorEl.scrollIntoView({ behavior:'smooth', block:'start' });
+          const nameEl = $('editName');
+          if (nameEl) { nameEl.focus(); nameEl.select?.(); }
+        }
       }
+    }catch(e){
+      usersListBox.innerHTML = `<div class="modal-card"><p class="muted">Kullanıcılar yüklenemedi: ${e.data?.error || e.message}</p></div>`;
     }
   }
 
   // Delegated handlers inside modal
   if (usersListBox){
-    usersListBox.addEventListener('click', (e)=>{
+    usersListBox.addEventListener('click', async (e)=>{
       const btn = e.target.closest('button');
       if (!btn) return;
 
@@ -300,14 +285,23 @@
         const tr = btn.closest('tr[data-id]');
         if (!tr) return;
         const uid = tr.getAttribute('data-id');
-        requireAdminThen(()=> handleDeleteUser(uid));
+        const pin = prompt('Admin PIN?') || '';
+        if (!pin) return;
+        if (!confirm('Bu kullanıcı silinsin mi?')) return;
+        try{
+          await deleteUserAPI(uid, pin);
+          // If deleting oneself, log out
+          const me = currentUserObj();
+          if (me && me.id === uid) { handleLogout(); return; }
+          await renderUsersPanel();
+          alert('Kullanıcı silindi.');
+        }catch(err){
+          alert(err.data?.error || 'Silinemedi.');
+        }
         return;
       }
 
-      if (btn.id === 'saveEditBtn'){
-        requireAdminThen(handleSaveEditor);
-        return;
-      }
+      if (btn.id === 'saveEditBtn'){ handleSaveEditor(); return; }
       if (btn.id === 'cancelEditBtn'){
         selectedUserId = null;
         showEditor = false;
@@ -319,34 +313,12 @@
     usersListBox.addEventListener('keydown', (e)=>{
       if (e.key === 'Enter' && e.target.closest('#userEditor')){
         e.preventDefault();
-        requireAdminThen(handleSaveEditor);
+        handleSaveEditor();
       }
     });
   }
 
-  function handleDeleteUser(uid){
-    const users = loadUsers();
-    const u = users.find(x=>x.id===uid);
-    if(!u) return;
-
-    if (u.role==='admin' && users.filter(x=>x.role==='admin').length<=1){
-      alert('En az bir admin kalmalı.');
-      return;
-    }
-    if(!confirm(`"${u.name}" silinsin mi?`)) return;
-
-    const me = currentUser();
-    const next = users.filter(x=>x.id!==uid);
-    saveUsers(next);
-
-    if (me && me.id === uid) handleLogout();
-
-    if (selectedUserId === uid) selectedUserId = null;
-    renderUsersPanel();
-    alert('Kullanıcı silindi.');
-  }
-
-  function handleSaveEditor(){
+  async function handleSaveEditor(){
     const id    = ($('#userEditor')||{}).getAttribute?.('data-id') || '';
     const nameI = ($('#editName') || {}).value?.trim() || '';
     const roleI = ($('#editRole') || {}).value === 'admin' ? 'admin' : 'user';
@@ -355,65 +327,35 @@
     const passI = ($('#editPass') || {}).value || '';
     const pin   = ($('#editPin')  || {}).value || '';
 
-    const pinCur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
-    if (pin !== pinCur){ alert('Admin PIN hatalı.'); return; }
+    try{
+      if (!id){
+        if (!nameI){ alert('Ad Soyad zorunlu.'); return; }
+        if (!passI){ alert('Yeni kullanıcı için şifre zorunlu.'); return; }
+        await createUser({ name:nameI, email:emailI, phone:phoneI, role:roleI, pass:passI, pin });
+        alert('Kullanıcı eklendi.');
+      }else{
+        await updateUser({ id, name:nameI || undefined, email:emailI || undefined, phone:phoneI || undefined, role:roleI, pass:passI || undefined, pin });
 
-    const users = loadUsers();
-
-    // ADD MODE
-    if (!id){
-      if (!nameI){ alert('Ad Soyad zorunlu.'); return; }
-      if (!passI){ alert('Yeni kullanıcı için şifre zorunlu.'); return; }
-      const dupAdd = users.find(u => u.name.trim().toLowerCase() === nameI.toLowerCase());
-      if (dupAdd){ alert('Bu kullanıcı adı zaten var.'); return; }
-      users.push({ id: cryptoRandomId(), name: nameI, email: emailI, phone: phoneI, role: roleI, pass: passI });
-      saveUsers(users);
+        // If current user edited, refresh local session copy
+        const me = currentUserObj();
+        if (me && me.id === id){
+          const all = await listUsers();
+          const updated = all.find(u=>u.id===id);
+          if (updated){
+            setSessionUser(updated);
+            preparedByInp.value = updated.name || '';
+            metaPrepared.textContent = preparedByInp.value || '—';
+            if (adminBtn) adminBtn.style.display = updated.role === 'admin' ? '' : 'none';
+          }
+        }
+        alert('Kullanıcı güncellendi.');
+      }
       selectedUserId = null;
       showEditor = false;
-      renderUsersPanel();
-      alert('Kullanıcı eklendi.');
-      return;
+      await renderUsersPanel();
+    }catch(e){
+      alert(e.data?.error || 'Kaydedilemedi.');
     }
-
-    // EDIT MODE
-    const idx = users.findIndex(u=>u.id===id);
-    if (idx < 0){ alert('Kullanıcı bulunamadı.'); return; }
-    const prev = users[idx];
-
-    const newName  = nameI  || prev.name;
-    const newEmail = emailI || prev.email || '';
-    const newPhone = phoneI || prev.phone || '';
-    const newRole  = roleI;
-    const newPass  = passI ? passI : prev.pass;
-
-    // Only check duplicates if name actually changed
-    if (newName.trim().toLowerCase() !== (prev.name||'').trim().toLowerCase()){
-      const dup = users.find(u => u.name.trim().toLowerCase() === newName.trim().toLowerCase());
-      if (dup && dup.id !== id){ alert('Bu kullanıcı adı zaten var.'); return; }
-    }
-
-    // Prevent removing the last admin
-    if (prev.role === 'admin' && newRole !== 'admin'){
-      const adminCount = users.filter(u=>u.role==='admin').length;
-      if (adminCount <= 1){ alert('En az bir admin kalmalı.'); return; }
-    }
-
-    users[idx] = { ...prev, name: newName, email: newEmail, phone: newPhone, role: newRole, pass: newPass };
-    saveUsers(users);
-
-    // If current user changed, reflect in UI
-    const me = currentUser();
-    if (me && me.id === id){
-      preparedByInp.value = users[idx].name || '';
-      localStorage.setItem('preparedBy', preparedByInp.value || '');
-      metaPrepared.textContent = preparedByInp.value || '—';
-      if (adminBtn) adminBtn.style.display = (users[idx].role==='admin') ? '' : 'none';
-    }
-
-    selectedUserId = null;
-    showEditor = false;
-    renderUsersPanel();
-    alert('Kullanıcı güncellendi.');
   }
 
   function showAdminModal(){
@@ -428,12 +370,13 @@
     if (adminModal) adminModal.classList.remove('show');
   }
 
-  function requireAdminThen(fn){
-    if(isAdmin()){ fn(); return; }
-    const pin = prompt('Admin PIN?');
-    const curPin = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
-    if(pin && pin === curPin){ fn(); }
-    else if(pin !== null){ alert('Hatalı PIN.'); }
+  if (adminBtn)  adminBtn.addEventListener('click', showAdminModal);
+  if (adminClose) adminClose.addEventListener('click', hideAdminModal);
+  if (adminModal) {
+    adminModal.addEventListener('click', (e)=>{ if(e.target === adminModal){ hideAdminModal(); } });
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape' && adminModal.classList.contains('show')) hideAdminModal();
+    });
   }
 
   /* =========================
@@ -445,7 +388,7 @@
     if (appMain)   appMain.classList.remove('hidden');
     if (appFooter) appFooter.classList.remove('hidden');
 
-    const cu = currentUser();
+    const cu = currentUserObj();
     if (cu) {
       preparedByInp.value = cu.name || '';
       localStorage.setItem('preparedBy', preparedByInp.value || '');
@@ -462,16 +405,23 @@
   }
 
   /* =========================
-     LOGIN / LOGOUT
+     LOGIN / LOGOUT (via API)
      ========================= */
-  function handleLogin(){
-    const nameInput = loginUser ? loginUser.value : '';
+  async function handleLogin(){
+    const nameInput = loginUser ? loginUser.value.trim() : '';
     const pass = loginPass ? (loginPass.value || '') : '';
-    const u = getUserByName(nameInput);
-    if(!u){ alert('Kullanıcı bulunamadı.'); return; }
-    if((u.pass||'') !== pass){ alert('Şifre hatalı.'); return; }
-    setSessionId(u.id);
-    showApp();
+    if(!nameInput || !pass){ alert('Kullanıcı adı ve şifre gerekli.'); return; }
+    try{
+      const { ok, user } = await loginAPI(nameInput, pass);
+      if (!ok || !user){ alert('Kullanıcı veya şifre hatalı.'); return; }
+      setSessionUser(user);
+      preparedByInp.value = user.name || '';
+      metaPrepared.textContent = preparedByInp.value || '—';
+      if (adminBtn) adminBtn.style.display = user.role === 'admin' ? '' : 'none';
+      showApp();
+    }catch(e){
+      alert(e.data?.error || 'Giriş yapılamadı.');
+    }
   }
 
   function handleLogout(){
@@ -481,59 +431,27 @@
     showGate();
   }
 
-  /* =========================
-     ADMIN ACTION BUTTONS
-     ========================= */
-  if (addUserBtn) addUserBtn.addEventListener('click', ()=>{
-    requireAdminThen(()=>{
-      // open editor in create mode, optionally prefill from quick form
-      selectedUserId = null;
-      showEditor = true;
-      renderUsersPanel();
-
-      const name  = (newUserName.value||'').trim();
-      const email = (newUserEmail.value||'').trim();
-      const phone = (newUserPhone.value||'').trim();
-      const pass  = (newUserPass.value||'').trim();
-      if (name){
-        const en = $('editName'); if (en) en.value = name;
-        const ee = $('editEmail'); if (ee) ee.value = email;
-        const eph= $('editPhone'); if (eph) eph.value = phone;
-        const ep = $('editPass');  if (ep) ep.value = pass;
-        const pin = $('editPin');  if (pin) pin.focus();
-      }
-      newUserName.value = ''; newUserEmail.value = ''; newUserPhone.value = ''; newUserPass.value = '';
-      const editorEl = $('userEditor'); if (editorEl) editorEl.scrollIntoView({behavior:'smooth', block:'start'});
-    });
-  });
-
-  if (changePinBtn) changePinBtn.addEventListener('click', ()=>{
-    requireAdminThen(()=>{
-      const cur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
-      if((oldPin.value||'') !== cur){ alert('Mevcut PIN yanlış.'); return; }
-      const np = (newPin.value||'').trim();
-      if(!np){ alert('Yeni PIN boş olamaz.'); return; }
-      localStorage.setItem(ADMIN_PIN_KEY, np);
-      oldPin.value = '';
-      newPin.value = '';
-      alert('Admin PIN güncellendi.');
-    });
-  });
-
-  if (adminBtn)  adminBtn.addEventListener('click', ()=>{ requireAdminThen(showAdminModal); });
-  if (adminClose) adminClose.addEventListener('click', hideAdminModal);
-  if (adminModal) {
-    adminModal.addEventListener('click', (e)=>{ if(e.target === adminModal){ hideAdminModal(); } });
-    document.addEventListener('keydown', (e)=>{
-      if (e.key === 'Escape' && adminModal.classList.contains('show')) hideAdminModal();
-    });
-  }
-
   // Auth gate buttons
   if (loginBtn)  loginBtn.addEventListener('click', handleLogin);
   if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
   if (loginPass) loginPass.addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleLogin(); });
   if (loginUser) loginUser.addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleLogin(); });
+
+  /* =========================
+     Admin PIN change (server)
+     ========================= */
+  if (changePinBtn) changePinBtn.addEventListener('click', async ()=>{
+    const oldp = (oldPin.value||'').trim();
+    const newp = (newPin.value||'').trim();
+    if (!oldp || !newp){ alert('Mevcut ve yeni PIN gerekli.'); return; }
+    try{
+      await changePinAPI(oldp, newp);
+      oldPin.value = ''; newPin.value = '';
+      alert('Admin PIN güncellendi.');
+    }catch(e){
+      alert(e.data?.error || 'PIN değiştirilemedi.');
+    }
+  });
 
   /* =========================
      CALCULATOR UI RENDER
@@ -565,7 +483,8 @@
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
     metaDate.textContent = todayStr();
 
-    preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
+    const cu = currentUserObj();
+    preparedByInp.value = cu?.name || localStorage.getItem('preparedBy') || preparedByInp.value || '';
     metaPrepared.textContent = preparedByInp.value || '—';
   }
 
@@ -636,7 +555,8 @@
     const cur = currencySel.value;
     const vals = collectValues();
     const sale = Number(vals.salePrice) || 0;
-    const downPay = Number(vals.down) || 0;
+    aconst_down = Number(vals.down) || 0; // keep legacy naming below
+    const downPay = aconst_down;
     const P = Math.max(0, sale - downPay);
     const n = Number(vals.term || 0);
     const m = Number(compoundSel.value);
@@ -695,7 +615,7 @@
   }
 
   /* =========================
-     SAVED QUOTES
+     SAVED QUOTES (still local)
      ========================= */
   function getQuotes(){
     try{ return JSON.parse(localStorage.getItem('quotes')||'[]'); }catch(e){ return []; }
@@ -842,22 +762,14 @@
     const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
   });
 
-  /* Cross-tab sync of users */
-  window.addEventListener('storage', (ev)=>{
-    if (ev.key === USERS_KEY || ev.key === USERS_KEY+'_ts'){
-      if (adminModal && adminModal.classList.contains('show')) renderUsersPanel();
-      const me = currentUser();
-      if (me && !getUserById(me.id)) handleLogout();
-    }
-  });
-
   /* =========================
      INIT
      ========================= */
   (function init(){
-    seedUsersIfEmpty();
-
-    if(currentUser()){
+    // If session exists use it; otherwise show gate
+    const u = currentUserObj();
+    if(u){
+      setSessionUser(u); // refresh local copy if needed
       showApp();
     }else{
       showGate();
