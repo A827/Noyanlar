@@ -1,33 +1,14 @@
-<!-- index.html -->
 <!DOCTYPE html>
-<html lang="tr" data-theme="light">
+<html lang="tr" data-theme="auto">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Noyanlar • Satış Taksit Hesaplayıcı</title>
   <meta name="theme-color" content="#8b1c23" />
   <link rel="stylesheet" href="styles.css" />
-  <style>
-    /* Lightweight gate styles using existing tokens */
-    .gate {
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      background:var(--bg); z-index:100; padding:24px;
-    }
-    .gate .panel {
-      width:min(560px, 96%); background:var(--card); color:var(--ink);
-      border:1px solid var(--line); border-radius:16px; padding:20px 20px 16px;
-      box-shadow:var(--shadow);
-    }
-    .gate .panel h1 { margin:0 0 4px; font-size:22px }
-    .gate .panel p { margin:0 0 16px; color:var(--muted) }
-    .gate .row { display:grid; grid-template-columns:1fr; gap:12px; margin:12px 0 16px }
-    .gate .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px }
-    .gate .small { font-size:12px; color:var(--muted) }
-    .hidden { display:none !important; }
-  </style>
 </head>
 <body>
-  <!-- ===== AUTH GATE ===== -->
+  <!-- AUTH GATE -->
   <div id="authGate" class="gate">
     <div class="panel">
       <h1>Noyanlar • Giriş</h1>
@@ -43,7 +24,6 @@
         </div>
       </div>
       <div class="actions">
-        <!-- Opens Admin modal from gate (PIN required in app.js) -->
         <button id="openAdminFromGate" class="btn secondary">Admin</button>
         <button id="loginBtn" class="btn">Giriş Yap</button>
       </div>
@@ -51,7 +31,7 @@
     </div>
   </div>
 
-  <!-- ===== BRAND BAR ===== -->
+  <!-- BRAND BAR -->
   <header class="brandbar no-print hidden" id="appHeader">
     <div class="brand-left">
       <div class="brand-logo" aria-hidden="true">
@@ -73,7 +53,6 @@
     </nav>
   </header>
 
-  <!-- ===== MAIN ===== -->
   <main class="wrap print-area hidden" id="appMain">
     <div class="page-head">
       <h1>Ödeme Planı</h1>
@@ -83,6 +62,7 @@
     <div class="grid">
       <!-- LEFT: FORM -->
       <section class="card form-card">
+        <!-- Sales & property meta -->
         <div class="inputs-grid">
           <div class="field">
             <label for="activeUser">Kullanıcı (seç)</label>
@@ -234,13 +214,18 @@
     </div>
   </footer>
 
-  <!-- ===== ADMIN MODAL (matches styles.css + app.js) ===== -->
-  <div id="adminModal" class="modal" style="display:none">
-    <div class="modal-dialog">
-      <div class="modal-head">
-        <h3>Kullanıcı Yönetimi</h3>
-        <button id="adminClose" class="btn tiny secondary">Kapat</button>
-      </div>
+  <!-- FULLSCREEN ADMIN MODAL -->
+  <div id="adminModal" class="modal-backdrop">
+    <div class="modal">
+      <header class="modal-head">
+        <div class="mh-left">
+          <h3>Kullanıcı Yönetimi</h3>
+          <span class="muted" id="usersCount">— kullanıcı</span>
+        </div>
+        <div class="mh-right">
+          <button id="adminClose" class="btn tiny secondary">Kapat</button>
+        </div>
+      </header>
 
       <div class="modal-body">
         <div class="grid-2">
@@ -248,19 +233,19 @@
             <h4>Yeni Kullanıcı Ekle</h4>
             <div class="field">
               <label>Ad Soyad</label>
-              <input id="newUserName" type="text" placeholder="Ad Soyad" />
+              <input id="newUserName" type="text" placeholder="Ad Soyad">
             </div>
             <div class="field">
               <label>E-posta (opsiyonel)</label>
-              <input id="newUserEmail" type="email" placeholder="eposta@ornek.com" />
+              <input id="newUserEmail" type="email" placeholder="eposta@ornek.com">
             </div>
             <div class="field">
               <label>Telefon (opsiyonel)</label>
-              <input id="newUserPhone" type="tel" placeholder="+90 ..." />
+              <input id="newUserPhone" type="tel" placeholder="+90 ...">
             </div>
             <div class="field">
               <label>Şifre</label>
-              <input id="newUserPass" type="password" placeholder="••••" />
+              <input id="newUserPass" type="password" placeholder="••••">
             </div>
             <button id="addUserBtn" class="btn">Ekle</button>
           </div>
@@ -269,18 +254,21 @@
             <h4>Admin PIN</h4>
             <div class="field">
               <label>Mevcut PIN</label>
-              <input id="oldPin" type="password" placeholder="****" />
+              <input id="oldPin" type="password" placeholder="****">
             </div>
             <div class="field">
               <label>Yeni PIN</label>
-              <input id="newPin" type="password" placeholder="****" />
+              <input id="newPin" type="password" placeholder="****">
             </div>
             <button id="changePinBtn" class="btn secondary">PIN Değiştir</button>
             <p class="muted" style="margin-top:8px">Not: Basit demo amaçlıdır (localStorage).</p>
           </div>
         </div>
 
-        <div id="usersList" class="list"></div>
+        <div class="users-wrap">
+          <h4>Kullanıcılar</h4>
+          <div id="usersList" class="users-list"></div>
+        </div>
       </div>
     </div>
   </div>

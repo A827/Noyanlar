@@ -194,14 +194,17 @@
 
     users.forEach(function(u){
       const row = document.createElement('div');
-      row.className = 'saved-list-item';
-      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin:6px 0;background:var(--chip)';
+      row.className = 'user-card';
       row.innerHTML =
-        '<div>' +
-          '<strong>'+u.name+'</strong> ' + (u.role==='admin' ? '<span class="muted">• Admin</span>' : '') +
-          '<div class="muted" style="font-size:12px">'+(u.email||'')+(u.phone ? ' • '+u.phone : '')+'</div>' +
+        '<div class="user-main">' +
+          '<span class="pill" style="min-width:36px;text-align:center">'+(u.name[0]||'?')+'</span>' +
+          '<div>' +
+            '<div class="user-name">'+u.name+'</div>' +
+            '<div class="user-meta">'+(u.role==='admin'?'Admin • ':'')+(u.email||'')+(u.phone?(' • '+u.phone):'')+'</div>' +
+          '</div>' +
         '</div>' +
-        '<div class="actions" style="display:flex;gap:8px">' +
+        '<div class="user-actions">' +
+          (u.role==='admin' ? '<span class="pill">Admin</span>' : '<span class="pill">User</span>') +
           '<button class="btn tiny secondary" data-act="del" data-id="'+u.id+'">Sil</button>' +
         '</div>';
 
@@ -230,7 +233,7 @@
   }
 
   function showAdminModal(){
-    if (adminModal) adminModal.classList.add('show');
+    if (adminModal) adminModal.classList.add('show'); // .modal-backdrop.show -> visible
     renderUsersList();
   }
   function hideAdminModal(){
@@ -674,6 +677,7 @@
     renderSavedList();
     renderActiveUserSelect();
 
+    // Close admin modal when clicking outside the inner .modal panel
     if (adminModal) adminModal.addEventListener('click', function(e){
       if(e.target === adminModal){ hideAdminModal(); }
     });
