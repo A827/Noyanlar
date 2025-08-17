@@ -1,7 +1,7 @@
 // functions/api/auth/login.js
 export async function onRequestPost({ request, env }) {
   const db = env.DB;
-  await ensureSchema(db);
+  await ensureSchemaAndSeed(db);
 
   let body;
   try { body = await request.json(); } catch { body = {}; }
@@ -12,7 +12,7 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: false, error: 'Missing name or pass' }, 400);
   }
 
-  // Authenticate (password is plain for now; we can hash later)
+  // Case-insensitive username match
   const row = await db.prepare(
     `SELECT id, name, role, email, phone
        FROM users
@@ -26,7 +26,7 @@ export async function onRequestPost({ request, env }) {
   return json({ ok: true, user: row });
 }
 
-// --- helpers ---
+/* -------------- helpers -------------- */
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -34,7 +34,7 @@ function json(payload, status = 200) {
   });
 }
 
-async function ensureSchema(db) {
+async function ensureSchemaAndSeed(db) {
   await db.batch([
     db.prepare(`CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -51,9 +51,24 @@ async function ensureSchema(db) {
     );`)
   ]);
 
-  // Seed admin PIN if missing
   const pin = await db.prepare(`SELECT val FROM settings WHERE key='admin_pin'`).first();
   if (!pin) {
     await db.prepare(`INSERT INTO settings(key,val) VALUES('admin_pin','1234')`).run();
   }
+
+  // ✅ Seed an admin user if users table is empty
+  const anyUser = await db.prepare(`SELECT id FROM users LIMIT 1`).first();
+  if (!anyUser) {
+    await db.prepare(
+      `INSERT INTO users (id, name, pass, role)
+       VALUES (?, 'admin', '1234', 'admin')`
+    ).bind(cryptoRandomId()).run();
+  }
+}
+
+function cryptoRandomId(){
+  try{
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11)
+      .replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+  }catch{ return 'u_' + Math.random().toString(36).slice(2,10); }
 }
