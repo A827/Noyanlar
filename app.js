@@ -36,16 +36,17 @@
 
   // Auth gate
   const authGate = $('authGate');
-  const loginUser = $('loginUser');
+  const loginUserSel = $('loginUserSel');
   const loginPass = $('loginPass');
   const loginBtn = $('loginBtn');
+  const logoutBtn = $('logoutBtn');
+  const openAdminFromGate = $('openAdminFromGate');
 
   // App shell
   const appHeader = $('appHeader');
   const appMain = $('appMain');
   const appFooter = $('appFooter');
   const adminBtn = $('adminBtn');
-  const logoutBtn = $('logoutBtn');
 
   // Admin modal
   const adminModal = $('adminModal');
@@ -53,10 +54,8 @@
   const usersList = $('usersList');
   const addUserBtn = $('addUserBtn');
   const newUserName = $('newUserName');
-  const newUserUsername = $('newUserUsername');
   const newUserEmail = $('newUserEmail');
   const newUserPhone = $('newUserPhone');
-  const newUserRole = $('newUserRole');
   const newUserPass = $('newUserPass');
   const oldPin = $('oldPin');
   const newPin = $('newPin');
@@ -105,6 +104,8 @@
   const clearQuotesBtn = $('clearQuotesBtn');
   const savedList = $('savedList');
 
+  const activeUserSel = $('activeUser');
+
   if ($('year')) $('year').textContent = new Date().getFullYear();
 
   /* =========================
@@ -123,12 +124,6 @@
   const ADMIN_PIN_KEY = 'adminPIN';
   const SESSION_KEY = 'noy_session_user';
 
-  function loadUsers(){
-    try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch { return []; }
-  }
-  function saveUsers(arr){
-    localStorage.setItem(USERS_KEY, JSON.stringify(arr));
-  }
   function cryptoRandomId(){
     try{
       return ([1e7]+-1e3+-4e3+-8e3+-1e11)
@@ -139,13 +134,61 @@
       return 'u_' + Math.random().toString(36).slice(2,10);
     }
   }
+
+  function validUserShape(u){
+    return u && typeof u === 'object' &&
+           'id' in u && 'name' in u && 'role' in u && 'pass' in u;
+  }
+
+  function loadUsers(){
+    try {
+      const raw = localStorage.getItem(USERS_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return [];
+      // Filter malformed entries
+      return arr.filter(validUserShape);
+    } catch { return []; }
+  }
+  function saveUsers(arr){
+    localStorage.setItem(USERS_KEY, JSON.stringify(arr));
+  }
+
+  // Ensure an admin user + PIN always exist if store is empty or corrupted
   function seedUsersIfEmpty(){
     let users = loadUsers();
+
+    // Migrate legacy shapes (if any)
+    try{
+      const raw = localStorage.getItem(USERS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length && !validUserShape(parsed[0])) {
+          // legacy: [{username, password, role}]
+          users = parsed.map(function(x){
+            return {
+              id: cryptoRandomId(),
+              name: x.username || x.name || 'User',
+              email: '',
+              phone: '',
+              role: x.role === 'admin' ? 'admin' : 'user',
+              pass: x.password || x.pass || '1234'
+            };
+          });
+          saveUsers(users);
+        }
+      }
+    }catch{ /* ignore */ }
+
     if(users.length === 0){
-      users = [
-        { id: cryptoRandomId(), name:'Admin', username:'coskun', email:'admin@noyanlar.com', phone:'', role:'admin', pass:'1234' },
-        { id: cryptoRandomId(), name:'Satış', username:'satis', email:'', phone:'', role:'user', pass:'1234' }
-      ];
+      users = [{
+        id: cryptoRandomId(),
+        name: 'Admin',
+        email: 'admin@noyanlar.com',
+        phone: '',
+        role: 'admin',
+        pass: '1234'
+      }];
       saveUsers(users);
     }
     if(!localStorage.getItem(ADMIN_PIN_KEY)){
@@ -158,12 +201,133 @@
   function clearSession(){ localStorage.removeItem(SESSION_KEY); }
 
   function getUserById(id){ return loadUsers().find(function(u){ return u.id===id; }); }
-  function getUserByUsername(un){ 
-    const n = (un||'').trim().toLowerCase();
-    return loadUsers().find(function(u){ return (u.username||'').toLowerCase() === n; });
-  }
   function currentUser(){ return getUserById(getSessionId()); }
-  function isAdmin(){ const u=currentUser(); return !!u && u.role==='admin'; }
+  function isAdmin(){ return (currentUser() && currentUser().role === 'admin'); }
+
+  function renderLoginUsers(){
+    const users = loadUsers();
+    if (!loginUserSel) return;
+
+    if (users.length === 0){
+      // As a fallback, reseed and re-render
+      seedUsersIfEmpty();
+    }
+    const list = loadUsers();
+
+    // Build options
+    loginUserSel.innerHTML = list.map(function(u){
+      return '<option value="'+u.id+'">'+u.name+(u.role==='admin'?' (Admin)':'')+'</option>';
+    }).join('');
+
+    // Select first by default
+    if (loginUserSel.options.length > 0){
+      loginUserSel.selectedIndex = 0;
+    }
+  }
+
+  function renderActiveUserSelect(){
+    if (!activeUserSel) return;
+    const users = loadUsers();
+    const curId = getSessionId();
+    const blank = '<option value="">—</option>';
+    const opts = users.map(function(u){
+      return '<option value="'+u.id+'" '+(u.id===curId?'selected':'')+'>'+u.name+(u.role==='admin'?' (Admin)':'')+'</option>';
+    }).join('');
+    activeUserSel.innerHTML = blank + opts;
+  }
+
+  function renderUsersList(){
+    if (!usersList) return;
+    const users = loadUsers();
+    const cur = currentUser();
+    usersList.innerHTML = '';
+    if(users.length === 0){
+      usersList.innerHTML = '<p class="muted">Kayıtlı kullanıcı yok.</p>';
+      return;
+    }
+    const adminCount = users.filter(function(u){ return u.role==='admin'; }).length;
+
+    users.forEach(function(u){
+      const row = document.createElement('div');
+      row.className = 'saved-list-item';
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin:6px 0;background:var(--chip)';
+      row.innerHTML =
+        '<div>' +
+          '<strong>'+u.name+'</strong> ' + (u.role==='admin' ? '<span class="muted">• Admin</span>' : '') +
+          '<div class="muted" style="font-size:12px">'+(u.email||'')+(u.phone ? ' • '+u.phone : '')+'</div>' +
+        '</div>' +
+        '<div class="actions" style="display:flex;gap:8px">' +
+          '<button class="btn tiny" data-act="edit" data-id="'+u.id+'">Düzenle</button>' +
+          '<button class="btn tiny secondary" data-act="del" data-id="'+u.id+'">Sil</button>' +
+        '</div>';
+
+      // Delete
+      row.querySelector('[data-act="del"]').addEventListener('click', function(){
+        if(u.role==='admin' && adminCount<=1){
+          alert('En az bir admin kalmalı.');
+          return;
+        }
+        if(cur && cur.id === u.id){
+          if(!confirm('Kendinizi siliyorsunuz. Devam ederseniz oturum kapanacak. Onaylıyor musunuz?')) return;
+        }else{
+          if(!confirm('"'+u.name+'" kullanıcısı silinsin mi?')) return;
+        }
+        const arr = loadUsers().filter(function(x){ return x.id!==u.id; });
+        saveUsers(arr);
+        renderUsersList();
+        renderLoginUsers();
+        renderActiveUserSelect();
+        if(cur && cur.id === u.id){
+          handleLogout();
+        }
+      });
+
+      // Edit (name/email/phone/pass/role)
+      row.querySelector('[data-act="edit"]').addEventListener('click', function(){
+        requireAdminThen(function(){
+          const name = prompt('Ad Soyad', u.name) || u.name;
+          const email = prompt('E-posta', u.email || '') || u.email || '';
+          const phone = prompt('Telefon', u.phone || '') || u.phone || '';
+          const pass = prompt('Şifre (boş bırak: değişme)', '');
+          const role = prompt('Rol: admin / user', u.role) || u.role;
+          const arr = loadUsers().map(function(x){
+            if (x.id !== u.id) return x;
+            return {
+              id: x.id,
+              name: name,
+              email: email,
+              phone: phone,
+              role: (role === 'admin' ? 'admin' : 'user'),
+              pass: pass ? pass : x.pass
+            };
+          });
+          saveUsers(arr);
+          renderUsersList();
+          renderLoginUsers();
+          renderActiveUserSelect();
+          alert('Kullanıcı güncellendi.');
+        });
+      });
+
+      usersList.appendChild(row);
+    });
+  }
+
+  function showAdminModal(){
+    if (adminModal) adminModal.classList.add('show');
+    renderUsersList();
+  }
+  function hideAdminModal(){
+    if (adminModal) adminModal.classList.remove('show');
+  }
+
+  function requireAdminThen(fn){
+    if(isAdmin()){ fn(); return; }
+    const pin = prompt('Admin PIN?');
+    const curPin = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
+    if(pin && pin === curPin){ fn(); }
+    else if(pin !== null){ alert('Hatalı PIN.'); }
+  }
 
   // Gate show/hide
   function showApp(){
@@ -171,8 +335,12 @@
     if (appHeader) appHeader.classList.remove('hidden');
     if (appMain) appMain.classList.remove('hidden');
     if (appFooter) appFooter.classList.remove('hidden');
-    // Admin button visibility based on role
-    if (adminBtn) adminBtn.style.display = isAdmin() ? '' : 'none';
+
+    // Hide Admin button for non-admin session
+    if (adminBtn){
+      if (isAdmin()) adminBtn.style.display = '';
+      else adminBtn.style.display = 'none';
+    }
   }
   function showGate(){
     if (authGate) authGate.classList.remove('hidden');
@@ -183,198 +351,85 @@
 
   // Login / Logout
   function handleLogin(){
-    const un = (loginUser.value || '').trim();
-    const pass = loginPass.value || '';
-    if(!un || !pass){ alert('Kullanıcı adı ve şifre gerekli.'); return; }
-    const u = getUserByUsername(un);
+    const id = loginUserSel ? loginUserSel.value : '';
+    const pass = loginPass ? (loginPass.value || '') : '';
+    const u = getUserById(id);
     if(!u){ alert('Kullanıcı bulunamadı.'); return; }
     if((u.pass||'') !== pass){ alert('Şifre hatalı.'); return; }
     setSessionId(u.id);
     preparedByInp.value = u.name || '';
     localStorage.setItem('preparedBy', preparedByInp.value || '');
     metaPrepared.textContent = preparedByInp.value || '—';
+    renderActiveUserSelect();
     showApp();
   }
+
   function handleLogout(){
     clearSession();
     if (loginPass) loginPass.value = '';
-    if (loginUser) loginUser.value = '';
     showGate();
   }
 
-  // Admin modal show/hide (admins only)
-  function showAdminModal(){
-    if(!isAdmin()){ alert('Bu alana sadece admin erişebilir.'); return; }
-    if (adminModal) adminModal.classList.add('show');
-    renderUsersList();
-  }
-  function hideAdminModal(){
-    if (adminModal) adminModal.classList.remove('show');
-  }
-
-  // Render users with inline edit controls
-  function renderUsersList(){
-    const users = loadUsers();
-    usersList.innerHTML = '';
-    if(users.length === 0){
-      usersList.innerHTML = '<p class="muted">Kayıtlı kullanıcı yok.</p>';
-      return;
-    }
-    const cur = currentUser();
-    const adminCount = users.filter(function(u){ return u.role==='admin'; }).length;
-
-    users.forEach(function(u){
-      const row = document.createElement('div');
-      row.className = 'user-row';
-
-      // View state
-      const view = document.createElement('div');
-      view.style.gridColumn = '1 / -1';
-      view.innerHTML = `
-        <div style="display:grid;grid-template-columns:2fr 1.5fr 1fr 1fr 1fr;gap:8px;align-items:center">
-          <div><strong>${u.name}</strong><div class="muted" style="font-size:12px">${u.username}</div></div>
-          <div>${u.email || ''}</div>
-          <div>${u.phone || ''}</div>
-          <div class="role"><span class="badge">${u.role}</span></div>
-          <div class="row-actions">
-            <button class="btn tiny" data-act="edit">Düzenle</button>
-            <button class="btn tiny secondary" data-act="del">Sil</button>
-          </div>
-        </div>
-      `;
-
-      // Edit state
-      const edit = document.createElement('div');
-      edit.style.display = 'none';
-      edit.style.gridColumn = '1 / -1';
-      edit.innerHTML = `
-        <div class="panel-like" style="display:grid;gap:10px">
-          <div class="grid-2">
-            <div class="field">
-              <label>Ad Soyad</label>
-              <input type="text" data-f="name" value="${u.name||''}">
-            </div>
-            <div class="field">
-              <label>Kullanıcı Adı</label>
-              <input type="text" data-f="username" value="${u.username||''}">
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field">
-              <label>E-posta</label>
-              <input type="email" data-f="email" value="${u.email||''}">
-            </div>
-            <div class="field">
-              <label>Telefon</label>
-              <input type="tel" data-f="phone" value="${u.phone||''}">
-            </div>
-          </div>
-          <div class="grid-2">
-            <div class="field">
-              <label>Rol</label>
-              <select data-f="role">
-                <option value="user" ${u.role==='user'?'selected':''}>Kullanıcı</option>
-                <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Yeni Şifre (opsiyonel)</label>
-              <input type="password" data-f="pass" placeholder="••••">
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn tiny" data-act="save">Kaydet</button>
-            <button class="btn tiny secondary" data-act="cancel">İptal</button>
-          </div>
-        </div>
-      `;
-
-      row.appendChild(view);
-      row.appendChild(edit);
-
-      // Handlers
-      const btnEdit = view.querySelector('[data-act="edit"]');
-      const btnDel  = view.querySelector('[data-act="del"]');
-      const btnSave = edit.querySelector('[data-act="save"]');
-      const btnCancel = edit.querySelector('[data-act="cancel"]');
-
-      btnEdit.addEventListener('click', function(){
-        view.style.display = 'none';
-        edit.style.display = '';
-      });
-
-      btnCancel.addEventListener('click', function(){
-        edit.style.display = 'none';
-        view.style.display = '';
-      });
-
-      btnSave.addEventListener('click', function(){
-        const fields = edit.querySelectorAll('[data-f]');
-        const updated = Object.assign({}, u);
-        fields.forEach(function(inp){
-          const key = inp.getAttribute('data-f');
-          const val = inp.value;
-          if(key === 'pass'){
-            if(val.trim().length){ updated.pass = val.trim(); }
-          }else{
-            updated[key] = val;
-          }
-        });
-
-        // Ensure at least one admin remains
-        if(u.role==='admin' && updated.role!=='admin' && adminCount<=1){
-          alert('En az bir admin kalmalı.');
-          return;
-        }
-
-        // Username uniqueness
-        const usersArr = loadUsers();
-        if(updated.username.trim().toLowerCase() !== (u.username||'').toLowerCase()){
-          if(usersArr.some(function(x){ return x.id!==u.id && (x.username||'').toLowerCase()===updated.username.trim().toLowerCase(); })){
-            alert('Bu kullanıcı adı zaten kullanılıyor.');
-            return;
-          }
-        }
-
-        const idx = usersArr.findIndex(function(x){ return x.id===u.id; });
-        usersArr[idx] = updated;
-        saveUsers(usersArr);
-
-        // If current user edited self: refresh header name & admin button visibility
-        const cur = currentUser();
-        if(cur && cur.id === updated.id){
-          preparedByInp.value = updated.name || '';
-          localStorage.setItem('preparedBy', preparedByInp.value || '');
-          metaPrepared.textContent = preparedByInp.value || '—';
-          adminBtn.style.display = updated.role==='admin' ? '' : 'none';
-        }
-
-        renderUsersList();
-        alert('Kullanıcı güncellendi.');
-      });
-
-      btnDel.addEventListener('click', function(){
-        const cur = currentUser();
-        const usersArr = loadUsers();
-        const adminsLeft = usersArr.filter(function(x){ return x.role==='admin' && x.id!==u.id; }).length;
-        if(u.role==='admin' && adminsLeft<1){
-          alert('En az bir admin kalmalı.');
-          return;
-        }
-        if(cur && cur.id === u.id){
-          if(!confirm('Kendinizi siliyorsunuz. Devam ederseniz oturum kapanacak. Onaylıyor musunuz?')) return;
-        }else{
-          if(!confirm('"'+u.name+'" kullanıcısı silinsin mi?')) return;
-        }
-        const filtered = usersArr.filter(function(x){ return x.id!==u.id; });
-        saveUsers(filtered);
-        if(cur && cur.id === u.id){ handleLogout(); }
-        renderUsersList();
-      });
-
-      usersList.appendChild(row);
+  // Admin actions
+  if (addUserBtn) addUserBtn.addEventListener('click', function(){
+    requireAdminThen(function(){
+      const name = (newUserName.value||'').trim();
+      const email = (newUserEmail.value||'').trim();
+      const phone = (newUserPhone.value||'').trim();
+      const pass = (newUserPass.value||'').trim();
+      if(!name || !pass){ alert('Ad ve şifre zorunlu.'); return; }
+      const users = loadUsers();
+      users.push({ id: cryptoRandomId(), name: name, email: email, phone: phone, role:'user', pass: pass });
+      saveUsers(users);
+      newUserName.value = '';
+      newUserEmail.value = '';
+      newUserPhone.value = '';
+      newUserPass.value = '';
+      renderUsersList();
+      renderLoginUsers();
+      renderActiveUserSelect();
+      alert('Kullanıcı eklendi.');
     });
-  }
+  });
+
+  if (changePinBtn) changePinBtn.addEventListener('click', function(){
+    requireAdminThen(function(){
+      const cur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
+      if((oldPin.value||'') !== cur){ alert('Mevcut PIN yanlış.'); return; }
+      if(!(newPin.value||'').trim()){ alert('Yeni PIN boş olamaz.'); return; }
+      localStorage.setItem(ADMIN_PIN_KEY, newPin.value.trim());
+      oldPin.value = '';
+      newPin.value = '';
+      alert('Admin PIN güncellendi.');
+    });
+  });
+
+  if (adminBtn) adminBtn.addEventListener('click', function(){
+    requireAdminThen(showAdminModal);
+  });
+  if (openAdminFromGate) openAdminFromGate.addEventListener('click', function(){
+    requireAdminThen(showAdminModal);
+  });
+  if (adminClose) adminClose.addEventListener('click', hideAdminModal);
+
+  // Auth gate buttons
+  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+  if (activeUserSel) activeUserSel.addEventListener('change', function(){
+    const id = activeUserSel.value;
+    if(!id) return;
+    const u = getUserById(id);
+    if(!u) return;
+    setSessionId(u.id);
+    preparedByInp.value = u.name || '';
+    localStorage.setItem('preparedBy', preparedByInp.value || '');
+    metaPrepared.textContent = preparedByInp.value || '—';
+    if (adminBtn){
+      if (isAdmin()) adminBtn.style.display = '';
+      else adminBtn.style.display = 'none';
+    }
+  });
 
   /* =========================
      CALCULATOR UI RENDER
@@ -687,53 +742,28 @@
     const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
   });
 
-  if (adminBtn) adminBtn.addEventListener('click', showAdminModal);
-  if (adminModal) adminModal.addEventListener('click', function(e){
-    if(e.target === adminModal){ hideAdminModal(); }
-  });
-  if (adminClose) adminClose.addEventListener('click', hideAdminModal);
-  if (changePinBtn) changePinBtn.addEventListener('click', function(){
-    if(!isAdmin()){ alert('Bu işlem için admin yetkisi gerekir.'); return; }
-    const cur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
-    if((oldPin.value||'') !== cur){ alert('Mevcut PIN yanlış.'); return; }
-    if(!(newPin.value||'').trim()){ alert('Yeni PIN boş olamaz.'); return; }
-    localStorage.setItem(ADMIN_PIN_KEY, newPin.value.trim());
-    oldPin.value = ''; newPin.value = '';
-    alert('Admin PIN güncellendi.');
+  if (clearQuotesBtn) clearQuotesBtn.addEventListener('click', function(){
+    if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
   });
 
-  if (addUserBtn) addUserBtn.addEventListener('click', function(){
-    if(!isAdmin()){ alert('Bu işlem için admin yetkisi gerekir.'); return; }
-    const name = (newUserName.value||'').trim();
-    const username = (newUserUsername.value||'').trim();
-    const email = (newUserEmail.value||'').trim();
-    const phone = (newUserPhone.value||'').trim();
-    const role = (newUserRole.value||'user');
-    const pass = (newUserPass.value||'').trim();
-
-    if(!name || !username || !pass){ alert('Ad, kullanıcı adı ve şifre zorunlu.'); return; }
-
-    const users = loadUsers();
-    if(users.some(function(u){ return (u.username||'').toLowerCase() === username.toLowerCase(); })){
-      alert('Bu kullanıcı adı zaten kullanılıyor.'); return;
+  /* Re-render login options if localStorage changes from another tab/window */
+  window.addEventListener('storage', function(ev){
+    if (ev.key === USERS_KEY){
+      renderLoginUsers();
+      renderUsersList();
+      renderActiveUserSelect();
     }
-
-    users.push({ id: cryptoRandomId(), name, username, email, phone, role, pass });
-    saveUsers(users);
-    newUserName.value = ''; newUserUsername.value=''; newUserEmail.value=''; newUserPhone.value=''; newUserPass.value='';
-    newUserRole.value='user';
-    renderUsersList();
-    alert('Kullanıcı eklendi.');
   });
-
-  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
 
   /* =========================
      INIT
      ========================= */
   (function init(){
+    // Always seed once on load (handles empty or bad data)
     seedUsersIfEmpty();
+
+    // Render login select after seeding
+    renderLoginUsers();
 
     if(currentUser()){
       showApp();
@@ -748,6 +778,11 @@
     updateCurrencyUI();
     syncMeta();
     renderSavedList();
+    renderActiveUserSelect();
+
+    if (adminModal) adminModal.addEventListener('click', function(e){
+      if(e.target === adminModal){ hideAdminModal(); }
+    });
   })();
 
 })();
