@@ -120,7 +120,6 @@
     summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
     metaDate.textContent = todayStr();
 
-    // restore remembered preferences
     preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
     metaPrepared.textContent = preparedByInp.value || '—';
   }
@@ -206,7 +205,6 @@ Total Interest,${meta.totalInterest}
     ctx.beginPath(); ctx.moveTo(pad, yPay); ctx.lineTo(W-pad, yPay); ctx.stroke();
     ctx.setLineDash([]);
 
-    // labels
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#9aa3b2';
     ctx.font = '12px system-ui';
     ctx.fillText('Bakiye', pad+6, toY(rows[0].bal||0)-8);
@@ -301,14 +299,12 @@ Total Interest,${meta.totalInterest}
     const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0);
     const totalInterestBurden = (downPay + totalInstallments) - sale;
 
-    // Business summary
     sbSale.textContent = fmt(sale, cur);
     sbDown.textContent = fmt(downPay, cur);
     sbBalance.textContent = fmt(P, cur);
     sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
     sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
 
-    // Technical summary
     primaryValue.textContent = fmt(payment,cur);
     loanAmountEl.textContent = fmt(P,cur);
     totalPaid.textContent = fmt(totalInstallments,cur);
@@ -318,7 +314,6 @@ Total Interest,${meta.totalInterest}
 
     summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
-    // Table
     scheduleBody.innerHTML = rows.map(rw=>`<tr>
       <td>${rw.k}</td>
       <td>${fmt(rw.pay,cur)}</td>
@@ -326,10 +321,8 @@ Total Interest,${meta.totalInterest}
     </tr>`).join('');
     scheduleWrap.style.display = 'block';
 
-    // Chart
     drawChart([{bal:P}, ...rows], payment);
 
-    // CSV meta
     exportBtn.dataset.csv = toCSV(rows, {
       date: metaDate.textContent || todayStr(),
       preparedBy: preparedByInp.value || '',
@@ -350,13 +343,22 @@ Total Interest,${meta.totalInterest}
   }
 
   // ===== EVENTS =====
-  printBtn?.addEventListener('click', ()=> window.print());
+  printBtn?.addEventListener('click', ()=>{
+    // Build filename from customer + property + date
+    const customer = (customerNameInp.value || 'Musteri').trim().replace(/\s+/g,'_');
+    const property = (propertyNameInp.value || 'Proje').trim().replace(/\s+/g,'_');
+    const date = new Date().toISOString().slice(0,10);
+    const prevTitle = document.title;
+    document.title = `Noyanlar_${customer}_${property}_${date}`;
+    window.print();
+    setTimeout(()=>{ document.title = prevTitle; }, 300);
+  });
 
   currencySel.addEventListener('change', ()=>{
     localStorage.setItem('currency', currencySel.value);
     updateCurrencyUI();
   });
-  compoundSel.addEventListener('change', ()=>{ /* no-op */ });
+  compoundSel.addEventListener('change', ()=>{});
 
   interestFree.addEventListener('change', ()=>{
     const aprInput = $('apr');
@@ -387,57 +389,4 @@ Total Interest,${meta.totalInterest}
 
   resetBtn.addEventListener('click', ()=>{
     [customerNameInp, customerPhoneInp, customerEmailInp,
-     propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp].forEach(i=> i && (i.value=''));
-    syncMeta();
-    renderFields();
-  });
-
-  exportBtn.addEventListener('click', ()=>{
-    const csv = exportBtn.dataset.csv || '';
-    if(!csv){ alert('Bu ekran için dışa aktarılacak amortisman yok.'); return; }
-    const blob = new Blob([csv], {type:'text/csv'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'odeme_plani.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-
-  saveQuoteBtn.addEventListener('click', ()=>{
-    const cur = currencySel.value;
-    const { salePrice, down, apr, term } = collectValues();
-    if (!salePrice || !term){ alert('Kaydetmek için Satış Fiyatı ve Vade gerekli.'); return; }
-    const q = {
-      date: todayStr(),
-      preparedBy: preparedByInp.value||'',
-      customer: customerNameInp.value||'',
-      phone: customerPhoneInp.value||'',
-      email: customerEmailInp.value||'',
-      property: propertyNameInp.value||'',
-      block: propertyBlockInp.value||'',
-      unit: propertyUnitInp.value||'',
-      type: propertyTypeInp.value||'',
-      currency: cur,
-      sale: Number(salePrice)||0,
-      down: Number(down)||0,
-      apr: Number(apr)||0,
-      term: Number(term)||0
-    };
-    const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
-  });
-
-  clearQuotesBtn.addEventListener('click', ()=>{
-    if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
-  });
-
-  // ===== INIT =====
-  (function init(){
-    const savedCur = localStorage.getItem('currency');
-    if (savedCur && sym[savedCur]) currencySel.value = savedCur;
-    renderFields();
-    updateCurrencyUI();
-    syncMeta();
-    renderSavedList();
-  })();
-
-})();
+     property
