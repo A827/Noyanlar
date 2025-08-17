@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="tr" data-theme="auto">
 <head>
@@ -6,17 +7,36 @@
   <title>Noyanlar • Satış Taksit Hesaplayıcı</title>
   <meta name="theme-color" content="#8b1c23" />
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Auth gate minimal styles (uses theme tokens) -->
+  <style>
+    .gate {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:var(--bg); z-index:100; padding:24px;
+    }
+    .gate .panel {
+      width:min(560px, 96%); background:var(--card); color:var(--ink);
+      border:1px solid var(--line); border-radius:16px; padding:20px 20px 16px;
+      box-shadow:0 24px 80px rgba(0,0,0,.45);
+    }
+    .gate .panel h1 { margin:0 0 4px; font-size:22px }
+    .gate .panel p { margin:0 0 16px; color:var(--muted) }
+    .gate .row { display:grid; grid-template-columns:1fr; gap:12px; margin:12px 0 16px }
+    .gate .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px }
+    .gate .small { font-size:12px; color:var(--muted) }
+    .hidden { display:none !important; }
+  </style>
 </head>
 <body>
   <!-- AUTH GATE -->
   <div id="authGate" class="gate">
     <div class="panel">
       <h1>Noyanlar • Giriş</h1>
-      <p>Lütfen kullanıcı seçin ve şifreyi girin.</p>
+      <p>Lütfen kullanıcı adı ve şifre girin.</p>
       <div class="row">
         <div class="field">
-          <label for="loginUserSel">Kullanıcı</label>
-          <select id="loginUserSel"></select>
+          <label for="loginUser">Kullanıcı Adı</label>
+          <input id="loginUser" type="text" placeholder="ör. coskun" />
         </div>
         <div class="field">
           <label for="loginPass">Şifre</label>
@@ -24,7 +44,6 @@
         </div>
       </div>
       <div class="actions">
-        <button id="openAdminFromGate" class="btn secondary">Admin</button>
         <button id="loginBtn" class="btn">Giriş Yap</button>
       </div>
       <p class="small">Not: Bu demo yerel depolama (localStorage) kullanır. Üretimde sunucu tabanlı sisteme geçeceğiz.</p>
@@ -47,7 +66,7 @@
     </div>
     <nav class="brand-right">
       <button id="themeToggle" class="nav-link" aria-label="Tema değiştir">🌙/☀️</button>
-      <button id="adminBtn" class="nav-link" title="Kullanıcı yönetimi">Admin</button>
+      <button id="adminBtn" class="nav-link" title="Kullanıcı yönetimi" style="display:none">Admin</button>
       <button id="logoutBtn" class="nav-link" title="Çıkış">Çıkış</button>
       <a href="https://noyanlar.com/" target="_blank" rel="noopener" class="nav-link">noyanlar.com</a>
     </nav>
@@ -64,12 +83,6 @@
       <section class="card form-card">
         <!-- Sales & property meta -->
         <div class="inputs-grid">
-          <div class="field">
-            <label for="activeUser">Kullanıcı (seç)</label>
-            <select id="activeUser">
-              <option value="">—</option>
-            </select>
-          </div>
           <div class="field">
             <label for="preparedBy">Hazırlayan (Satış Temsilcisi)</label>
             <input id="preparedBy" type="text" placeholder="Ad Soyad" />
@@ -214,26 +227,24 @@
     </div>
   </footer>
 
-  <!-- FULLSCREEN ADMIN MODAL -->
+  <!-- Admin Modal (full-screen) -->
   <div id="adminModal" class="modal-backdrop">
-    <div class="modal">
-      <header class="modal-head">
-        <div class="mh-left">
-          <h3>Kullanıcı Yönetimi</h3>
-          <span class="muted" id="usersCount">— kullanıcı</span>
-        </div>
-        <div class="mh-right">
-          <button id="adminClose" class="btn tiny secondary">Kapat</button>
-        </div>
+    <div class="modal fullscreen">
+      <header class="modal-header">
+        <h3>Kullanıcı Yönetimi</h3>
+        <button id="adminClose" class="btn tiny secondary">Kapat</button>
       </header>
-
       <div class="modal-body">
         <div class="grid-2">
-          <div class="box">
+          <div class="panel-like">
             <h4>Yeni Kullanıcı Ekle</h4>
             <div class="field">
-              <label>Ad Soyad</label>
+              <label>Ad Soyad (görünen ad)</label>
               <input id="newUserName" type="text" placeholder="Ad Soyad">
+            </div>
+            <div class="field">
+              <label>Kullanıcı Adı (giriş)</label>
+              <input id="newUserUsername" type="text" placeholder="ör. coskun">
             </div>
             <div class="field">
               <label>E-posta (opsiyonel)</label>
@@ -244,13 +255,20 @@
               <input id="newUserPhone" type="tel" placeholder="+90 ...">
             </div>
             <div class="field">
+              <label>Rol</label>
+              <select id="newUserRole">
+                <option value="user" selected>Kullanıcı</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="field">
               <label>Şifre</label>
               <input id="newUserPass" type="password" placeholder="••••">
             </div>
             <button id="addUserBtn" class="btn">Ekle</button>
           </div>
 
-          <div class="box">
+          <div class="panel-like">
             <h4>Admin PIN</h4>
             <div class="field">
               <label>Mevcut PIN</label>
@@ -265,10 +283,8 @@
           </div>
         </div>
 
-        <div class="users-wrap">
-          <h4>Kullanıcılar</h4>
-          <div id="usersList" class="users-list"></div>
-        </div>
+        <h4 style="margin-top:16px">Kullanıcılar</h4>
+        <div class="list" id="usersList"></div>
       </div>
     </div>
   </div>

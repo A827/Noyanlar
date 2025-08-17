@@ -85,7 +85,6 @@ body{
     radial-gradient(900px 500px at 120% 10%, color-mix(in srgb, var(--brand-2) 18%, transparent), transparent 55%),
     linear-gradient(120deg, color-mix(in srgb, #0b0f1a 70%, var(--bg)), var(--bg) 40%, color-mix(in srgb, #0b0f1a 70%, var(--bg)));
 }
-.hidden{display:none !important}
 
 /* ==============================
    BRAND BAR
@@ -125,7 +124,7 @@ body{
     linear-gradient(135deg, color-mix(in srgb, #1b2032 70%, var(--brand-2)), var(--chip-hover)) border-box;
   border:1px solid transparent;
   box-shadow:var(--shadow);
-  overflow:hidden; /* prevent spill */
+  overflow:hidden;
 }
 
 /* ==============================
@@ -144,42 +143,20 @@ body{
 @media(min-width:980px){ .inputs-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
 
 /* Fields */
-.field{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-}
-
-label{
-  font-size:12px;
-  color:var(--muted);
-  margin-bottom:6px;
-  display:block;
-}
-
+.field{ display:flex; flex-direction:column; gap:6px; }
+label{ font-size:12px; color:var(--muted); margin-bottom:6px; display:block; }
 input,select{
-  width:100%;
-  padding:12px 14px;
-  border-radius:12px;
-  border:1px solid var(--line);
-  background:var(--chip);
-  color:var(--ink);
-  outline:none;
+  width:100%; padding:12px 14px; border-radius:12px;
+  border:1px solid var(--line); background:var(--chip); color:var(--ink); outline:none;
 }
 
-/* Focus: fallback first, then upgrade with color-mix if supported */
-input:focus,
-select:focus{
+/* Focus */
+input:focus, select:focus{
   border-color:var(--brand-2);
   box-shadow:0 0 0 3px var(--chip-hover, rgba(202,164,106,0.18));
 }
-
-/* If the engine supports color-mix, enhance the border color */
 @supports (color: color-mix(in srgb, #000 50%, #fff 50%)){
-  input:focus,
-  select:focus{
-    border-color:color-mix(in srgb, var(--brand-2) 40%, var(--line));
-  }
+  input:focus, select:focus{ border-color:color-mix(in srgb, var(--brand-2) 40%, var(--line)); }
 }
 
 /* Currency symbol prefix */
@@ -190,13 +167,9 @@ select:focus{
 }
 .prefix-wrap input{padding-left:34px}
 
-/* Checkbox (faizsiz plan) — allow wrapping */
-.checkbox .chk{
-  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-}
-.checkbox .chk span{
-  word-break:break-word; overflow-wrap:anywhere; line-height:1.2;
-}
+/* Checkbox */
+.checkbox .chk{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.checkbox .chk span{ word-break:break-word; overflow-wrap:anywhere; line-height:1.2; }
 
 /* Preset chips */
 .presets{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0 6px}
@@ -223,45 +196,34 @@ select:focus{
 .note{margin:12px 0 8px; font-size:12px; color:var(--muted)}
 
 /* ==============================
-   TABLE (Schedule)
+   TABLE
    ============================== */
 .table-wrap{
   max-height:420px; overflow:auto;
   border:1px solid var(--line); border-radius:12px; background:var(--card)
 }
 table{width:100%; border-collapse:collapse; background:var(--chip)}
-th,td{
-  padding:12px 10px; border-bottom:1px solid var(--line); text-align:right
-}
+th,td{ padding:12px 10px; border-bottom:1px solid var(--line); text-align:right }
 th:first-child,td:first-child{text-align:left}
 thead th{position:sticky; top:0; background:var(--table-head); z-index:1}
 tbody tr:nth-child(odd){background:var(--table-alt)}
 tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2) 5%)}
 
 /* ==============================
-   SUMMARY PANEL (Right side)
+   SUMMARY
    ============================== */
 .summary-card{padding:18px; position:relative; background:var(--card)}
-.meta{
-  display:grid; gap:8px;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  margin-bottom:10px;
-}
+.meta{ display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr)); margin-bottom:10px; }
 @media(min-width:980px){ .meta{ grid-template-columns: repeat(4, minmax(0,1fr)); } }
 .meta span{font-size:12px; color:var(--muted)}
 .meta strong{display:block; font-size:16px; font-weight:800}
 
 .stats{display:grid; gap:12px; grid-template-columns:repeat(2,minmax(0,1fr))}
-.stat{
-  background:var(--chip); border:1px solid var(--line); border-radius:14px; padding:12px
-}
+.stat{ background:var(--chip); border:1px solid var(--line); border-radius:14px; padding:12px }
 .stat span{font-size:12px; color:var(--muted)}
 .stat strong{display:block; font-size:18px; font-weight:800; margin-top:4px}
 .divider{border:none; border-top:1px dashed var(--line); margin:12px 0}
-.chart{
-  width:100%; margin-top:10px; background:var(--chip);
-  border:1px solid var(--line); border-radius:12px
-}
+.chart{ width:100%; margin-top:10px; background:var(--chip); border:1px solid var(--line); border-radius:12px }
 
 /* Saved plans */
 .saved{margin-top:12px}
@@ -287,66 +249,6 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
 .footer-links{display:flex; gap:10px; align-items:center}
 
 /* ==============================
-   FULL-SCREEN ADMIN MODAL
-   ============================== */
-.modal-backdrop{
-  position:fixed; inset:0; z-index:1000;
-  background:color-mix(in srgb, #000 55%, transparent);
-  display:none;
-}
-.modal-backdrop.show{ display:block; }
-
-.modal{
-  position:fixed; inset:0;
-  display:flex; flex-direction:column;
-  background:
-    radial-gradient(1000px 600px at 10% -10%, color-mix(in srgb, var(--watermark) 18%, transparent), transparent 60%),
-    radial-gradient(900px 500px at 120% 10%, color-mix(in srgb, var(--brand-2) 18%, transparent), transparent 55%),
-    linear-gradient(120deg, color-mix(in srgb, #0b0f1a 70%, var(--bg)), var(--bg) 40%, color-mix(in srgb, #0b0f1a 70%, var(--bg)));
-  color:var(--ink);
-  overflow:auto;
-  padding:20px;
-}
-.modal header{
-  position:sticky; top:0; z-index:2;
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:10px 8px;
-  background:linear-gradient(180deg, color-mix(in srgb, #111523 70%, var(--bg)), var(--bg));
-  border-bottom:1px solid var(--line);
-  border-radius:12px;
-}
-.modal header h3{margin:0; font-size:18px}
-.modal .body{padding:12px 4px 20px}
-
-.grid-2{
-  display:grid; gap:16px; margin:12px 0 18px;
-  grid-template-columns:1fr;
-}
-@media(min-width:900px){
-  .grid-2{ grid-template-columns:1fr 1fr; }
-}
-
-/* User list in admin */
-.list{
-  display:grid; gap:10px;
-  grid-template-columns:1fr;
-}
-.user-card{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:10px 12px;
-}
-.user-main{display:flex; gap:10px; align-items:center; min-width:0}
-.user-name{font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:48vw}
-.user-meta{font-size:12px; color:var(--muted)}
-.pill{
-  display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px;
-  border:1px solid var(--chip-border); background:var(--chip);
-}
-.user-actions{display:flex; gap:8px}
-.btn.warn{background:linear-gradient(135deg,#b42318,#8a1a13)}
-.btn.flat{background:transparent; color:var(--ink); border:1px dashed var(--line)}
-
-/* ==============================
    PRINT
    ============================== */
 .print-area::before{
@@ -364,7 +266,7 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
 }
 
 /* ==============================
-   RESPONSIVE TWEAKS
+   RESPONSIVE
    ============================== */
 @media (max-width: 900px){
   .form-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
@@ -373,63 +275,51 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
   .form-grid{ grid-template-columns:1fr; }
 }
 
-/* ====== PDF / Print styles (append to end of styles.css) ====== */
+/* ====== PDF extras ====== */
 .print-only{ display:none; }
-
 @media print {
   @page { size: A4; margin: 14mm; }
   body{ background:#fff !important; color:#000 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-
-  /* Hide non-essential UI in PDF */
-  .no-print,
-  .brandbar,
-  .presets,
-  .actions,
-  .inputs-grid,
-  .form-grid,
-  .note,
-  .saved.box,
-  .nav-link,
-  .modal-backdrop,
-  .modal { display:none !important; }
-
-  /* Show print header/footer */
+  .no-print, .brandbar, .presets, .actions, .inputs-grid, .form-grid, .note, .saved.box, .nav-link { display:none !important; }
   .print-only{ display:block !important; }
-
-  /* Cards: remove dark backgrounds/borders for paper */
-  .card, .table-wrap, .stat, .saved li, .summary-card {
-    background:#fff !important;
-    border:1px solid #ccc !important;
-    box-shadow:none !important;
-  }
-
-  /* Make schedule table full height (no scroll) */
+  .card, .table-wrap, .stat, .saved li, .summary-card { background:#fff !important; border:1px solid #ccc !important; box-shadow:none !important; }
   .table-wrap{ max-height:none !important; overflow:visible !important; }
-
-  thead th{
-    background:#f2f2f2 !important; color:#000 !important;
-  }
-
-  /* Avoid awkward page breaks */
+  thead th{ background:#f2f2f2 !important; color:#000 !important; }
   .print-header, .summary-card { break-inside: avoid; }
   table, tr, td, th { break-inside: avoid; }
-
-  /* Layout: stack content for paper */
   .grid{ display:block !important; }
-
-  /* Print header layout */
-  .print-header .ph-row{
-    display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:12px;
-  }
-  .print-header .ph-meta{
-    display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px 16px;
-  }
-  .print-header .ph-meta span{ font-size:12px; color:#555; }
-  .print-header .ph-meta strong{ font-size:14px; }
-
-  /* Print footer */
-  .print-footer{ margin-top:16px; padding:12px; }
-  .print-footer .pf-grid{ display:flex; gap:40px; }
-  .print-footer .line{ height:1.2em; border-bottom:1px solid #333; width:220px; }
-  .print-footer .pf-contact{ margin-top:10px; font-size:12px; color:#333; }
 }
+
+/* ==============================
+   MODAL (full-screen admin)
+   ============================== */
+.modal-backdrop{
+  position:fixed; inset:0; background:color-mix(in srgb, var(--bg) 80%, #000);
+  display:none; align-items:stretch; justify-content:center; z-index:200;
+}
+.modal-backdrop.show{ display:flex; }
+.modal.fullscreen{
+  width:100%; max-width:1200px; margin:0 auto; height:100vh; background:var(--card); color:var(--ink);
+  border-left:1px solid var(--line); border-right:1px solid var(--line);
+  display:flex; flex-direction:column;
+}
+.modal-header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 16px; border-bottom:1px solid var(--line);
+}
+.modal-body{
+  padding:16px; overflow:auto; flex:1;
+}
+.grid-2{
+  display:grid; gap:16px; grid-template-columns:repeat(2, minmax(0,1fr));
+}
+@media(max-width: 900px){ .grid-2{ grid-template-columns:1fr; } }
+.panel-like{
+  background:var(--chip); border:1px solid var(--line); border-radius:14px; padding:12px;
+}
+.user-row{
+  display:grid; gap:8px; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr; align-items:center;
+  border:1px solid var(--line); border-radius:12px; padding:10px; margin:8px 0; background:var(--chip);
+}
+.user-row .row-actions{ display:flex; gap:8px; justify-content:flex-end; }
+.user-row .role{ min-width:110px; }
