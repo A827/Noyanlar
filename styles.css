@@ -3,242 +3,160 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Inter', sans-serif;
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  line-height: 1.6;
-  transition: background 0.3s, color 0.3s;
-}
-
-/* ---------- Light & Dark Theme Variables ---------- */
-:root {
-  --bg: #0f172a;
-  --card: #1e293b;
-  --text: #f1f5f9;
-  --accent: #ef4444;
-  --border: #334155;
-}
-
-.light {
-  --bg: #f8fafc;
-  --card: #ffffff;
-  --text: #0f172a;
-  --accent: #ef4444;
-  --border: #e2e8f0;
+  font-family: Arial, sans-serif;
+  background-color: #0f172a; /* dark background */
+  color: #e2e8f0;
+  line-height: 1.5;
 }
 
 /* ---------- Container ---------- */
 .container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 20px;
-}
-
-/* ---------- Header ---------- */
-header {
   display: flex;
+  flex-direction: row;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-}
-
-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-}
-
-/* ---------- Dark / Light Toggle ---------- */
-.toggle-btn {
-  padding: 8px 16px;
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: opacity 0.2s;
-}
-.toggle-btn:hover {
-  opacity: 0.85;
-}
-
-/* ---------- Layout Grid ---------- */
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-}
-
-@media (max-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ---------- Card ---------- */
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  gap: 20px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  transition: background 0.3s, border 0.3s;
-  overflow: hidden;
 }
 
-/* ---------- Form Grid ---------- */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: 16px;
+.left-panel,
+.right-panel {
+  flex: 1;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
-@media (max-width: 900px) {
-  .form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-}
-@media (max-width: 640px) {
-  .form-grid { grid-template-columns: 1fr; }
-}
-
-/* ---------- Form Controls ---------- */
-label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 6px;
+/* ---------- Headings ---------- */
+h1,
+h2,
+h3 {
+  margin-bottom: 16px;
+  font-weight: bold;
+  color: #f1f5f9;
 }
 
-input, select {
+/* ---------- Form Inputs ---------- */
+input,
+select,
+textarea {
   width: 100%;
   padding: 10px;
+  margin: 8px 0 16px 0;
   border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text);
-  font-size: 1rem;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f8fafc;
 }
 
-input:focus, select:focus {
-  outline: 2px solid var(--accent);
-  border-color: var(--accent);
-}
-
-/* ---------- Checkbox Styling ---------- */
-.checkbox .chk {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;              /* allow wrapping */
-}
-
-.checkbox .chk span {
-  word-break: break-word;
-  overflow-wrap: anywhere;      /* prevent overflow */
-  line-height: 1.2;
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 4px #38bdf8;
 }
 
 /* ---------- Buttons ---------- */
 button {
-  padding: 10px 16px;
-  border-radius: 8px;
+  background: #38bdf8;
+  color: #0f172a;
+  font-weight: bold;
+  padding: 12px 20px;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
-  font-weight: 600;
-  transition: opacity 0.2s;
-}
-
-.primary-btn {
-  background: var(--accent);
-  color: #fff;
-}
-
-.secondary-btn {
-  background: #475569;
-  color: #fff;
+  transition: 0.2s ease-in-out;
 }
 
 button:hover {
-  opacity: 0.9;
-}
-
-/* ---------- Summary Section ---------- */
-.summary h2 {
-  font-size: 1.4rem;
-  margin-bottom: 12px;
-}
-
-.summary ul {
-  list-style: none;
-}
-
-.summary li {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.95rem;
+  background: #0ea5e9;
+  color: #fff;
 }
 
 /* ---------- Table ---------- */
-.table-container {
-  margin-top: 30px;
-  overflow-x: auto;
-}
-
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
+  margin-top: 16px;
 }
 
-th, td {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+table th,
+table td {
+  padding: 12px;
   text-align: center;
+  border-bottom: 1px solid #334155;
 }
 
-th {
-  background: var(--card);
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.85rem;
+table th {
+  background: #1e293b;
+  font-weight: bold;
 }
 
-tbody tr:hover {
-  background: rgba(239, 68, 68, 0.1);
+table tr:nth-child(even) {
+  background: #0f172a;
 }
 
-/* ---------- Notes ---------- */
-.note {
-  margin-top: 10px;
-  font-size: 0.85rem;
-  color: var(--text);
-  opacity: 0.7;
-  text-align: center;
-}
-/* --- Patch: fix checkbox label wrapping without changing layout --- */
-.checkbox .chk{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  flex-wrap:wrap;          /* allow wrap so it won't spill into the right panel */
-}
-.checkbox .chk span{
-  word-break:break-word;
-  overflow-wrap:anywhere;
-  line-height:1.2;
+/* ---------- Toggle Button ---------- */
+.toggle-mode {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #334155;
+  border-radius: 50%;
+  padding: 10px;
+  cursor: pointer;
+  transition: 0.3s ease;
 }
 
-/* Prevent any content from spilling outside the card edges */
-.card{ overflow:hidden; }
-
-/* Keep your current layout; only ease the small settings row on narrow screens */
-@media (max-width: 900px){
-  .form-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+.toggle-mode:hover {
+  background: #475569;
 }
-@media (max-width: 640px){
-  .form-grid{ grid-template-columns: 1fr; }
+
+/* ---------- Light Mode ---------- */
+.light-mode {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.light-mode .left-panel,
+.light-mode .right-panel {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.light-mode input,
+.light-mode select,
+.light-mode textarea {
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+}
+
+.light-mode table th {
+  background: #f1f5f9;
+}
+
+.light-mode table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.light-mode button {
+  background: #0ea5e9;
+  color: #fff;
+}
+
+.light-mode button:hover {
+  background: #0284c7;
+}
+
+/* ---------- Fix: Checkbox Wrapping ---------- */
+input[type="checkbox"] {
+  width: auto !important;
+  margin-right: 8px;
+  display: inline-block;
+  vertical-align: middle;
 }
