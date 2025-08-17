@@ -1,80 +1,38 @@
-// GET /api/users/:id  |  PUT /api/users/:id  |  DELETE /api/users/:id
-export async function onRequest({ request, params, env }) {
-  const db = env.DB;
-  const id = params.id;
+const json = (data, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json" } });
 
-  const json = (obj, status = 200) =>
-    new Response(JSON.stringify(obj), {
-      status,
-      headers: { "content-type": "application/json; charset=utf-8" },
-    });
+export const onRequestPut = async ({ params, request, env }) => {
+  const { id } = params;
+  const body = await request.json().catch(() => ({}));
+  const { name, email, phone, role, pass } = body;
 
-  try {
-    if (request.method === "GET") {
-      const row = await db.prepare(
-        `SELECT id, name, email, phone, role, created_at FROM users WHERE id=?;`
-      ).bind(id).first();
-      if (!row) return json({ ok:false, error:"not found" }, 404);
-      return json({ ok:true, user: row });
-    }
+  // build dynamic update
+  const fields = [];
+  const vals = [];
+  if (name != null)  { fields.push("name=?");  vals.push(name); }
+  if (email != null) { fields.push("email=?"); vals.push(email); }
+  if (phone != null) { fields.push("phone=?"); vals.push(phone); }
+  if (role != null)  { fields.push("role=?");  vals.push(role === "admin" ? "admin" : "user"); }
+  if (pass != null)  { fields.push("pass=?");  vals.push(pass); }
 
-    if (request.method === "PUT") {
-      const body = await request.json().catch(() => ({}));
-      // read current
-      const cur = await db.prepare(`SELECT * FROM users WHERE id=?;`).bind(id).first();
-      if (!cur) return json({ ok:false, error:"not found" }, 404);
+  if (!fields.length) return json({ ok: false, error: "no changes" }, 400);
 
-      const name  = (body.name ?? cur.name).trim();
-      const email = (body.email ?? cur.email) || null;
-      const phone = (body.phone ?? cur.phone) || null;
-      const role  = ((body.role ?? cur.role).toLowerCase() === "admin") ? "admin" : "user";
-      const pass  = (body.pass ?? cur.pass);
+  vals.push(id);
+  const stmt = `UPDATE users SET ${fields.join(", ")} WHERE id=?`;
+  const res = await env.DB.prepare(stmt).bind(...vals).run();
 
-      if (!name) return json({ ok:false, error:"name required" }, 400);
+  return json({ ok: true, changed: res.meta.changes });
+};
 
-      // unique name (ignore self)
-      const dup = await db.prepare(
-        `SELECT id FROM users WHERE lower(name)=lower(?) AND id<>?;`
-      ).bind(name, id).first();
-      if (dup) return json({ ok:false, error:"username already exists" }, 409);
+export const onRequestDelete = async ({ params, env }) => {
+  const { id } = params;
+  // block deleting last admin
+  const { results: admins } = await env.DB.prepare(`SELECT COUNT(*) as c FROM users WHERE role='admin'`).all();
+  const { results: target } = await env.DB.prepare(`SELECT role FROM users WHERE id=?`).bind(id).all();
+  if (!target.length) return json({ ok: false, error: "not found" }, 404);
+  if (target[0].role === "admin" && admins[0].c <= 1)
+    return json({ ok: false, error: "at least one admin required" }, 400);
 
-      // ensure at least one admin remains
-      if (cur.role === "admin" && role !== "admin") {
-        const { count } = await db.prepare(
-          `SELECT COUNT(*) as count FROM users WHERE role='admin' AND id<>?;`
-        ).bind(id).first();
-        if (Number(count) <= 0) return json({ ok:false, error:"at least one admin required" }, 400);
-      }
-
-      await db.prepare(
-        `UPDATE users
-         SET name=?1, email=?2, phone=?3, role=?4, pass=?5
-         WHERE id=?6;`
-      ).bind(name, email, phone, role, pass, id).run();
-
-      const updated = await db.prepare(
-        `SELECT id, name, email, phone, role, created_at FROM users WHERE id=?;`
-      ).bind(id).first();
-      return json({ ok:true, user: updated });
-    }
-
-    if (request.method === "DELETE") {
-      // ensure at least one admin remains if we delete an admin
-      const cur = await db.prepare(`SELECT role FROM users WHERE id=?;`).bind(id).first();
-      if (!cur) return json({ ok:false, error:"not found" }, 404);
-      if (cur.role === "admin") {
-        const { count } = await db.prepare(
-          `SELECT COUNT(*) as count FROM users WHERE role='admin' AND id<>?;`
-        ).bind(id).first();
-        if (Number(count) <= 0) return json({ ok:false, error:"at least one admin required" }, 400);
-      }
-
-      await db.prepare(`DELETE FROM users WHERE id=?;`).bind(id).run();
-      return json({ ok:true });
-    }
-
-    return new Response("Method Not Allowed", { status: 405 });
-  } catch (err) {
-    return json({ ok:false, error:String(err) }, 500);
-  }
-}
+  const res = await env.DB.prepare(`DELETE FROM users WHERE id=?`).bind(id).run();
+  return json({ ok: true, deleted: res.meta.changes });
+};
