@@ -38,7 +38,6 @@
   const currencySel = $('currency');
   const compoundSel = $('compound');
   const interestFree = $('interestFree');
-  const currencyBadge = $('currencyBadge');
 
   // meta inputs
   const preparedByInp = $('preparedBy');
@@ -62,7 +61,6 @@
   const loginUserSel = $('loginUserSel');
   const loginPass = $('loginPass');
   const loginBtn = $('loginBtn');
-  const openAdminFromGate = $('openAdminFromGate');
   const appHeader = $('appHeader');
   const appMain = $('appMain');
   const appFooter = $('appFooter');
@@ -89,9 +87,6 @@
   const newUserPhone = $('newUserPhone');
   const newUserPass = $('newUserPass');
   const usersList = $('usersList');
-  const changePinBtn = $('changePinBtn');
-  const oldPin = $('oldPin');
-  const newPin = $('newPin');
 
   // ===== HELPERS =====
   const sym = { GBP:'£', EUR:'€', USD:'$' };
@@ -238,9 +233,8 @@ Total Interest,${meta.totalInterest}
     calcBtn.click();
   }
 
-  // ===== USERS (Admin) =====
+  // ===== USERS / ROLES =====
   const USERS_KEY = 'users';
-  const PIN_KEY = 'admin_pin';
   const AUTH_USER_KEY = 'auth_user'; // sessionStorage key
 
   function getUsers(){
@@ -250,11 +244,16 @@ Total Interest,${meta.totalInterest}
     localStorage.setItem(USERS_KEY, JSON.stringify(arr));
     renderUsersUI();
   }
+  function getCurrentUser(){
+    const uid = sessionStorage.getItem(AUTH_USER_KEY);
+    return getUsers().find(u=>u.id===uid) || null;
+  }
   function ensureDefaults(){
-    if (!localStorage.getItem(PIN_KEY)) localStorage.setItem(PIN_KEY, '0000'); // default PIN
     if (!localStorage.getItem(USERS_KEY)) {
-      // default user has NO password; login will refuse until admin sets one
-      setUsers([{id:crypto.randomUUID?.()||String(Date.now()), name:'Satış Ekibi', email:'', phone:'', pass:''}]);
+      // Seed: one admin + one regular
+      const admin = { id: crypto.randomUUID?.()||String(Date.now()), name:'Admin', email:'', phone:'', pass:'admin123', isAdmin:true };
+      const sales = { id: (Date.now()+1)+'', name:'Satış Ekibi', email:'', phone:'', pass:'', isAdmin:false };
+      setUsers([admin, sales]);
     } else {
       renderUsersUI();
     }
@@ -262,18 +261,19 @@ Total Interest,${meta.totalInterest}
   function renderUsersUI(){
     const users = getUsers();
 
-    // auth gate dropdown (with placeholder to prevent auto-selection)
+    // auth gate dropdown (with placeholder)
     if (loginUserSel){
       const current = loginUserSel.value;
       loginUserSel.innerHTML = `<option value="">— Kullanıcı seçin —</option>` +
-        users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+        users.map(u=>`<option value="${u.id}">${u.name}${u.isAdmin?' (admin)':''}</option>`).join('');
       if (users.some(u=>u.id===current)) loginUserSel.value = current;
     }
 
     // in-app user dropdown
     if (activeUserSel){
       const current2 = activeUserSel.value;
-      activeUserSel.innerHTML = `<option value="">—</option>` + users.map(u=>`<option value="${u.id}">${u.name}</option>`).join('');
+      activeUserSel.innerHTML = `<option value="">—</option>` +
+        users.map(u=>`<option value="${u.id}">${u.name}${u.isAdmin?' (admin)':''}</option>`).join('');
       if (users.some(u=>u.id===current2)) activeUserSel.value = current2;
     }
 
@@ -282,25 +282,24 @@ Total Interest,${meta.totalInterest}
       usersList.innerHTML = users.map(u=>`
         <div class="list-item">
           <div>
-            <strong>${u.name}</strong>
+            <strong>${u.name}</strong> ${u.isAdmin ? '<span class="badge gold" style="margin-left:6px">admin</span>' : ''}
             <div class="muted" style="font-size:12px">${u.email||'—'} • ${u.phone||'—'}</div>
           </div>
           <div>
             <button class="btn tiny" data-edit="${u.id}">Düzenle</button>
             <button class="btn tiny" data-pass="${u.id}">Şifre</button>
+            <button class="btn tiny" data-role="${u.id}">${u.isAdmin?'Adminliği Kaldır':'Admin Yap'}</button>
             <button class="btn tiny secondary" data-del="${u.id}">Sil</button>
           </div>
         </div>
       `).join('');
     }
-  }
 
-  function requirePin(){
-    const pin = prompt('Admin PIN:');
-    if (!pin) return false;
-    const saved = localStorage.getItem(PIN_KEY) || '0000';
-    if (pin !== saved){ alert('Hatalı PIN'); return false; }
-    return true;
+    // Admin button visibility based on current user role
+    const cur = getCurrentUser();
+    if (adminBtn){
+      adminBtn.style.display = (cur && cur.isAdmin) ? 'inline-flex' : 'none';
+    }
   }
 
   function onActiveUserChange(){
@@ -338,9 +337,8 @@ Total Interest,${meta.totalInterest}
 
     const input = (loginPass.value||'').trim();
 
-    // Enforce: non-empty password and must match stored password
     if (!user.pass){
-      alert('Bu kullanıcı için şifre ayarlanmamış. Lütfen Admin ile şifre belirleyin.');
+      alert('Bu kullanıcı için şifre ayarlanmamış. Lütfen admin bir şifre belirlesin.');
       return;
     }
     if (!input){
@@ -360,6 +358,7 @@ Total Interest,${meta.totalInterest}
     if (activeUserSel){ activeUserSel.value = uid; }
     loginPass.value = '';
     showAppUI(true);
+    renderUsersUI(); // to refresh admin button visibility
   }
 
   function tryAutoLogin(){
@@ -372,6 +371,7 @@ Total Interest,${meta.totalInterest}
     if (metaPrepared) metaPrepared.textContent = preparedByInp.value || '—';
     if (activeUserSel){ activeUserSel.value = uid; }
     showAppUI(true);
+    renderUsersUI(); // ensure admin button visibility on reload
   }
 
   function logout(){
@@ -452,7 +452,7 @@ Total Interest,${meta.totalInterest}
       customer: customerNameInp.value || '',
       phone: customerPhoneInp.value || '',
       email: customerEmailInp.value || '',
-      property: propertyNameInp.value || '',
+      property: customerNameInp.value || '',
       block: propertyBlockInp.value || '',
       unit: propertyUnitInp.value || '',
       type: propertyTypeInp.value || '',
@@ -556,13 +556,13 @@ Total Interest,${meta.totalInterest}
     if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
   });
 
-  // Admin modal events
+  // Admin button -> modal (only if current user is admin)
   adminBtn?.addEventListener('click', ()=>{
-    if (!requirePin()) return;
-    adminModal.style.display = 'flex';
-  });
-  openAdminFromGate?.addEventListener('click', ()=>{
-    if (!requirePin()) return;
+    const cur = getCurrentUser();
+    if (!cur || !cur.isAdmin){
+      alert('Bu bölüme yalnızca admin erişebilir.');
+      return;
+    }
     adminModal.style.display = 'flex';
   });
 
@@ -578,49 +578,62 @@ Total Interest,${meta.totalInterest}
       name,
       email: (newUserEmail.value||'').trim(),
       phone: (newUserPhone.value||'').trim(),
-      pass: (newUserPass.value||'').trim()
+      pass: (newUserPass.value||'').trim(),
+      isAdmin: false
     });
     setUsers(users);
     newUserName.value = ''; newUserEmail.value=''; newUserPhone.value=''; newUserPass.value='';
   });
 
   usersList?.addEventListener('click', (e)=>{
-    const delId = e.target?.dataset?.del;
+    const delId  = e.target?.dataset?.del;
     const editId = e.target?.dataset?.edit;
     const passId = e.target?.dataset?.pass;
+    const roleId = e.target?.dataset?.role;
+
     if (delId){
-      const users = getUsers().filter(u=>u.id!==delId);
-      setUsers(users);
+      const users = getUsers();
+      const you = getCurrentUser();
+      if (you && you.id === delId){ alert('Kendinizi silemezsiniz.'); return; }
+      const remaining = users.filter(u=>u.id!==delId);
+      setUsers(remaining);
       if (activeUserSel.value === delId){ activeUserSel.value=''; onActiveUserChange(); }
       if (loginUserSel.value === delId){ renderUsersUI(); }
     }
+
     if (editId){
       const users = getUsers();
       const u = users.find(x=>x.id===editId);
       if (!u) return;
-      const newName = prompt('Yeni isim:', u.name) || u.name;
-      const newEmail = prompt('Yeni e-posta:', u.email||'') || u.email;
-      const newPhone = prompt('Yeni telefon:', u.phone||'') || u.phone;
-      u.name = newName.trim(); u.email = newEmail.trim(); u.phone = newPhone.trim();
+      const newName = prompt('Yeni isim:', u.name);
+      if (newName !== null) u.name = newName.trim() || u.name;
+      const newEmail = prompt('Yeni e-posta:', u.email||'');
+      if (newEmail !== null) u.email = newEmail.trim();
+      const newPhone = prompt('Yeni telefon:', u.phone||'');
+      if (newPhone !== null) u.phone = newPhone.trim();
       setUsers(users);
     }
+
     if (passId){
       const users = getUsers();
       const u = users.find(x=>x.id===passId);
       if (!u) return;
-      const p = prompt('Yeni şifre (boş bırak = şifresiz):', u.pass||'');
+      const p = prompt('Yeni şifre (boş = kaldır):', u.pass||'');
       if (p !== null){ u.pass = (p||'').trim(); setUsers(users); }
     }
-  });
 
-  changePinBtn?.addEventListener('click', ()=>{
-    const cur = localStorage.getItem(PIN_KEY) || '0000';
-    if ((oldPin.value||'') !== cur){ alert('Mevcut PIN hatalı'); return; }
-    const np = (newPin.value||'').trim();
-    if (!/^\d{4,6}$/.test(np)){ alert('Yeni PIN 4-6 haneli olmalı (sadece rakam)'); return; }
-    localStorage.setItem(PIN_KEY, np);
-    oldPin.value=''; newPin.value='';
-    alert('PIN güncellendi');
+    if (roleId){
+      const users = getUsers();
+      const u = users.find(x=>x.id===roleId);
+      if (!u) return;
+      const me = getCurrentUser();
+      if (me && me.id === u.id && u.isAdmin){
+        alert('Kendi adminliğinizi bu ekrandan kaldıramazsınız.');
+        return;
+      }
+      u.isAdmin = !u.isAdmin;
+      setUsers(users);
+    }
   });
 
   loginBtn?.addEventListener('click', login);
