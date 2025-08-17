@@ -1,38 +1,30 @@
 // functions/api/auth/login.js
-export async function onRequestPost({ request, env, json }) {
-  const body = await request.json().catch(() => ({}));
-  const name = String(body.name || "").trim();
-  const pass = String(body.pass || "");
+export async function onRequestPost({ request, env }) {
+  const body = await readJSON(request);
+  const name = (body.name || '').trim();
+  const pass = body.pass || '';
 
   if (!name || !pass) {
-    return json({ ok: false, error: "Missing credentials" }, { status: 400 });
+    return json({ ok: false, error: 'Missing credentials' }, 400);
   }
 
-  // username match is case-insensitive on name
-  const row = await env.DB
-    .prepare("SELECT id, name, role, email, phone FROM users WHERE lower(name)=lower(?) AND pass=? LIMIT 1")
-    .bind(name, pass)
-    .first();
+  // ... your D1 lookup here; example:
+  // const row = await env.DB.prepare('SELECT id,name,role,pass FROM users WHERE lower(name)=?')
+  //   .bind(name.toLowerCase()).first();
 
-  if (!row) {
-    return json({ ok: false, error: "Invalid username or password" }, { status: 401 });
-  }
+  // compare pass, build user object, etc.
+  // return json({ ok: true, user });
 
-  // issue a simple session cookie (demo)
-  const cookie = [
-    `sid=${encodeURIComponent(row.id)}`,
-    "Path=/",
-    "HttpOnly",
-    "Secure",
-    "SameSite=Lax",
-    "Max-Age=604800" // 7 days
-  ].join("; ");
+  return json({ ok: false, error: 'Not implemented' }, 501);
+}
 
-  return new Response(JSON.stringify({ ok: true, user: row }), {
-    status: 200,
-    headers: {
-      "content-type": "application/json",
-      "set-cookie": cookie
-    }
+/* utils */
+async function readJSON(req) {
+  try { return await req.json(); } catch { return {}; }
+}
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json' }
   });
 }
