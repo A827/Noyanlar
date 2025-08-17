@@ -1,4 +1,3 @@
-// app.js
 (function () {
   /* =========================
      THEME TOGGLE (auto/light/dark)
@@ -128,7 +127,7 @@
   async function api(path, opts = {}) {
     const res = await fetch(API_BASE + path, {
       headers: { 'content-type': 'application/json' },
-      credentials: 'same-origin',
+      credentials: 'include',
       ...opts
     });
     const data = await res.json().catch(() => ({}));
@@ -139,49 +138,30 @@
     }
     return data;
   }
+  // Auth
+  const loginAPI  = (name, pass) => api('/api/auth/login', { method: 'POST', body: JSON.stringify({ name, pass }) });
+  const meAPI     = () => api('/api/auth/me', { method: 'GET' });
+  const logoutAPI = () => api('/api/auth/logout', { method: 'POST' });
   // Users
   const listUsers = () => api('/api/users', { method: 'GET' });
-  const createUser = (body) => api('/api/users', { method: 'POST', body: JSON.stringify(body) });
-  const updateUser = (body) => api('/api/users', { method: 'PUT', body: JSON.stringify(body) });
+  const createUser= (body) => api('/api/users', { method: 'POST', body: JSON.stringify(body) });
+  const updateUser= (body) => api('/api/users', { method: 'PUT',  body: JSON.stringify(body) });
   const deleteUserAPI = (id, pin) =>
     api(`/api/users?id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`, { method: 'DELETE' });
-  // Auth
-  const loginAPI = (name, pass) => api('/api/auth/login', { method: 'POST', body: JSON.stringify({ name, pass }) });
-  const logoutAPI = () => fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
   // Admin PIN change
   const changePinAPI = (oldPin, newPin) =>
     api('/api/admin/pin', { method: 'POST', body: JSON.stringify({ oldPin, newPin }) });
 
-  // Normalize users response: array or {users:[…]}
   const normalizeUsers = (res) => (Array.isArray(res) ? res : (res && res.users) || []);
 
   /* =========================
-     Client-side session (only for UI state)
+     Client-side session (tiny UI cache)
      ========================= */
-  const SESSION_ID_KEY = 'noy_session_user';
   const SESSION_OBJ_KEY = 'noy_session_user_obj';
-  function setSessionUser(user) {
-    try {
-      localStorage.setItem(SESSION_ID_KEY, user?.id || '');
-      localStorage.setItem(SESSION_OBJ_KEY, JSON.stringify(user || null));
-    } catch {}
-  }
-  function clearSessionStorage() {
-    try {
-      localStorage.removeItem(SESSION_ID_KEY);
-      localStorage.removeItem(SESSION_OBJ_KEY);
-    } catch {}
-  }
-  function currentUserObj() {
-    try {
-      return JSON.parse(localStorage.getItem(SESSION_OBJ_KEY) || 'null');
-    } catch {
-      return null;
-    }
-  }
-  function isAdmin() {
-    return currentUserObj()?.role === 'admin';
-  }
+  function setSessionUser(user) { try { localStorage.setItem(SESSION_OBJ_KEY, JSON.stringify(user || null)); } catch {} }
+  function clearSessionStorage() { try { localStorage.removeItem(SESSION_OBJ_KEY); } catch {} }
+  function currentUserObj() { try { return JSON.parse(localStorage.getItem(SESSION_OBJ_KEY) || 'null'); } catch { return null; } }
+  function isAdmin() { return currentUserObj()?.role === 'admin'; }
 
   /* =========================
      ADMIN UI: TABLE + EDITOR
@@ -190,18 +170,14 @@
   let showEditor = false;
 
   function userTableHTML(users) {
-    const rows = users
-      .map((u) => {
-        const badge =
-          u.role === 'admin'
-            ? '<span class="role-badge admin">admin</span>'
-            : '<span class="role-badge">user</span>';
-        return `
+    const rows = users.map((u) => {
+      const badge = u.role === 'admin'
+        ? '<span class="role-badge admin">admin</span>'
+        : '<span class="role-badge">user</span>';
+      return `
         <tr data-id="${u.id}">
           <td><strong>${escapeHTML(u.name || '')}</strong><br>
-              <span class="muted" style="font-size:12px">${escapeHTML(u.email || '')}${
-          u.phone ? ' • ' + escapeHTML(u.phone) : ''
-        }</span>
+              <span class="muted" style="font-size:12px">${escapeHTML(u.email || '')}${u.phone ? ' • ' + escapeHTML(u.phone) : ''}</span>
           </td>
           <td>${badge}</td>
           <td class="row-actions">
@@ -209,8 +185,7 @@
             <button class="btn tiny secondary danger" data-act="delete">Sil</button>
           </td>
         </tr>`;
-      })
-      .join('');
+    }).join('');
     return `
       <table class="user-table">
         <thead>
@@ -282,16 +257,11 @@
         if (editorEl) {
           editorEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
           const nameEl = $('editName');
-          if (nameEl) {
-            nameEl.focus();
-            nameEl.select?.();
-          }
+          if (nameEl) { nameEl.focus(); nameEl.select?.(); }
         }
       }
     } catch (e) {
-      usersListBox.innerHTML = `<div class="modal-card"><p class="muted">Kullanıcılar yüklenemedi: ${
-        e.data?.error || e.message
-      }</p></div>`;
+      usersListBox.innerHTML = `<div class="modal-card"><p class="muted">Kullanıcılar yüklenemedi: ${e.data?.error || e.message}</p></div>`;
     }
   }
 
@@ -301,16 +271,14 @@
       if (!btn) return;
 
       if (btn.dataset.act === 'edit') {
-        const tr = btn.closest('tr[data-id]');
-        if (!tr) return;
+        const tr = btn.closest('tr[data-id]'); if (!tr) return;
         selectedUserId = tr.getAttribute('data-id');
         showEditor = true;
         renderUsersPanel();
         return;
       }
       if (btn.dataset.act === 'delete') {
-        const tr = btn.closest('tr[data-id]');
-        if (!tr) return;
+        const tr = btn.closest('tr[data-id]'); if (!tr) return;
         const uid = tr.getAttribute('data-id');
         const pin = prompt('Admin PIN?') || '';
         if (!pin) return;
@@ -318,10 +286,7 @@
         try {
           await deleteUserAPI(uid, pin);
           const me = currentUserObj();
-          if (me && me.id === uid) {
-            await handleLogout();
-            return;
-          }
+          if (me && me.id === uid) { await handleLogout(); return; }
           await renderUsersPanel();
           alert('Kullanıcı silindi.');
         } catch (err) {
@@ -330,10 +295,7 @@
         return;
       }
 
-      if (btn.id === 'saveEditBtn') {
-        handleSaveEditor();
-        return;
-      }
+      if (btn.id === 'saveEditBtn') { handleSaveEditor(); return; }
       if (btn.id === 'cancelEditBtn') {
         selectedUserId = null;
         showEditor = false;
@@ -361,14 +323,8 @@
 
     try {
       if (!id) {
-        if (!nameI) {
-          alert('Ad Soyad zorunlu.');
-          return;
-        }
-        if (!passI) {
-          alert('Yeni kullanıcı için şifre zorunlu.');
-          return;
-        }
+        if (!nameI) { alert('Ad Soyad zorunlu.'); return; }
+        if (!passI) { alert('Yeni kullanıcı için şifre zorunlu.'); return; }
         await createUser({ name: nameI, email: emailI, phone: phoneI, role: roleI, pass: passI, pin });
         alert('Kullanıcı eklendi.');
       } else {
@@ -382,18 +338,12 @@
           pin
         });
 
-        // If current user edited, refresh local session copy
-        const me = currentUserObj();
-        if (me && me.id === id) {
-          const respAll = await listUsers();
-          const all = normalizeUsers(respAll);
-          const updated = all.find((u) => u.id === id);
-          if (updated) {
-            setSessionUser(updated);
-            preparedByInp.value = updated.name || '';
-            metaPrepared.textContent = preparedByInp.value || '—';
-            if (adminBtn) adminBtn.style.display = updated.role === 'admin' ? '' : 'none';
-          }
+        const me = await meAPI().catch(() => ({ ok:false }));
+        if (me && me.ok && me.user) {
+          setSessionUser(me.user);
+          preparedByInp.value = me.user.name || '';
+          metaPrepared.textContent = preparedByInp.value || '—';
+          if (adminBtn) adminBtn.style.display = me.user.role === 'admin' ? '' : 'none';
         }
         alert('Kullanıcı güncellendi.');
       }
@@ -413,19 +363,13 @@
     const modalBox = adminModal?.querySelector('.modal');
     if (modalBox) modalBox.scrollTop = 0;
   }
-  function hideAdminModal() {
-    if (adminModal) adminModal.classList.remove('show');
-  }
+  function hideAdminModal() { if (adminModal) adminModal.classList.remove('show'); }
 
   if (adminBtn) adminBtn.addEventListener('click', showAdminModal);
   if (adminClose) adminClose.addEventListener('click', hideAdminModal);
   if (adminModal) {
-    adminModal.addEventListener('click', (e) => {
-      if (e.target === adminModal) hideAdminModal();
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && adminModal.classList.contains('show')) hideAdminModal();
-    });
+    adminModal.addEventListener('click', (e) => { if (e.target === adminModal) hideAdminModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && adminModal.classList.contains('show')) hideAdminModal(); });
   }
 
   /* =========================
@@ -453,25 +397,20 @@
   }
 
   /* =========================
-     LOGIN / LOGOUT (via API)
+     LOGIN / LOGOUT (server)
      ========================= */
   async function handleLogin() {
     const nameInput = loginUser ? loginUser.value.trim() : '';
     const pass = loginPass ? loginPass.value || '' : '';
-    if (!nameInput || !pass) {
-      alert('Kullanıcı adı ve şifre gerekli.');
-      return;
-    }
+    if (!nameInput || !pass) { alert('Kullanıcı adı ve şifre gerekli.'); return; }
     try {
-      const { ok, user } = await loginAPI(nameInput, pass);
-      if (!ok || !user) {
-        alert('Kullanıcı veya şifre hatalı.');
-        return;
-      }
-      setSessionUser(user);
-      preparedByInp.value = user.name || '';
+      await loginAPI(nameInput, pass);
+      const me = await meAPI();
+      if (!me.ok || !me.user) { alert('Kullanıcı veya şifre hatalı.'); return; }
+      setSessionUser(me.user);
+      preparedByInp.value = me.user.name || '';
       metaPrepared.textContent = preparedByInp.value || '—';
-      if (adminBtn) adminBtn.style.display = user.role === 'admin' ? '' : 'none';
+      if (adminBtn) adminBtn.style.display = me.user.role === 'admin' ? '' : 'none';
       showApp();
     } catch (e) {
       alert(e.data?.error || 'Giriş yapılamadı.');
@@ -479,17 +418,14 @@
   }
 
   async function handleLogout() {
-    try {
-      await logoutAPI();
-    } catch {}
+    try { await logoutAPI(); } catch {}
     clearSessionStorage();
     if (loginUser) loginUser.value = '';
     if (loginPass) loginPass.value = '';
     showGate();
   }
 
-  // Auth gate buttons
-  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  if (loginBtn)  loginBtn.addEventListener('click', handleLogin);
   if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
   if (loginPass) loginPass.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
   if (loginUser) loginUser.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleLogin(); });
@@ -500,14 +436,10 @@
   if (changePinBtn) changePinBtn.addEventListener('click', async () => {
     const oldp = (oldPin?.value || '').trim();
     const newp = (newPin?.value || '').trim();
-    if (!oldp || !newp) {
-      alert('Mevcut ve yeni PIN gerekli.');
-      return;
-    }
+    if (!oldp || !newp) { alert('Mevcut ve yeni PIN gerekli.'); return; }
     try {
       await changePinAPI(oldp, newp);
-      oldPin.value = '';
-      newPin.value = '';
+      oldPin.value = ''; newPin.value = '';
       alert('Admin PIN güncellendi.');
     } catch (e) {
       alert(e.data?.error || 'PIN değiştirilemedi.');
@@ -620,16 +552,13 @@
     const cur = currencySel.value;
     const vals = collectValues();
     const sale = Number(vals.salePrice) || 0;
-    const downPay = Number(vals.down) || 0; // ✅ fixed
+    const downPay = Number(vals.down) || 0;
     const P = Math.max(0, sale - downPay);
     const n = Number(vals.term || 0);
     const m = Number(compoundSel.value);
     const r = Number(vals.apr || 0) / 100 / m;
 
-    if (n <= 0) {
-      summary.textContent = 'Lütfen geçerli vade (ay) girin.';
-      return;
-    }
+    if (n <= 0) { summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
 
     const payment = r === 0 ? P / n : (P * r) / (1 - Math.pow(1 + r, -n));
     const rows = buildSchedule(P, r, n, payment);
@@ -681,15 +610,10 @@
   }
 
   /* =========================
-     SAVED QUOTES (local only for now)
+     SAVED QUOTES (local for now)
      ========================= */
-  function getQuotes() {
-    try { return JSON.parse(localStorage.getItem('quotes') || '[]'); } catch { return []; }
-  }
-  function setQuotes(arr) {
-    localStorage.setItem('quotes', JSON.stringify(arr));
-    renderSavedList();
-  }
+  function getQuotes() { try { return JSON.parse(localStorage.getItem('quotes') || '[]'); } catch { return []; } }
+  function setQuotes(arr) { localStorage.setItem('quotes', JSON.stringify(arr)); renderSavedList(); }
   function renderSavedList() {
     const items = getQuotes();
     savedList.innerHTML = items.length ? '' : '<li class="id">Henüz kayıt yok.</li>';
@@ -701,9 +625,7 @@
       const loadBtn = document.createElement('button'); loadBtn.className = 'btn tiny'; loadBtn.textContent = 'Yükle';
       const delBtn = document.createElement('button'); delBtn.className = 'btn tiny secondary'; delBtn.textContent = 'Sil';
       loadBtn.onclick = () => { loadQuote(idx); };
-      delBtn.onclick = () => {
-        const arr = getQuotes(); arr.splice(idx, 1); setQuotes(arr);
-      };
+      delBtn.onclick = () => { const arr = getQuotes(); arr.splice(idx, 1); setQuotes(arr); };
       right.appendChild(loadBtn); right.appendChild(delBtn);
       li.appendChild(left); li.appendChild(right);
       savedList.appendChild(li);
@@ -824,16 +746,14 @@
   });
 
   /* =========================
-     INIT
+     INIT (ask server who I am)
      ========================= */
-  (function init() {
-    const u = currentUserObj();
-    if (u) {
-      setSessionUser(u);
-      showApp();
-    } else {
-      showGate();
-    }
+  (async function init() {
+    try {
+      const me = await meAPI();
+      if (me.ok && me.user) { setSessionUser(me.user); showApp(); }
+      else { clearSessionStorage(); showGate(); }
+    } catch { clearSessionStorage(); showGate(); }
 
     const savedCur = localStorage.getItem('currency');
     if (savedCur && sym[savedCur]) currencySel.value = savedCur;
