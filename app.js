@@ -16,20 +16,33 @@
   const payoffDate = $('payoffDate');
   const summary = $('summary');
 
-  // NEW: business summary fields
+  // Business summary fields
   const sbSale = $('sbSale');
   const sbDown = $('sbDown');
   const sbBalance = $('sbBalance');
   const sbBalancePlusInterest = $('sbBalancePlusInterest');
   const sbTotalBurden = $('sbTotalBurden');
 
+  // Meta display
+  const metaDate = $('metaDate');
+  const metaCustomer = $('metaCustomer');
+  const metaProperty = $('metaProperty');
+
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
   const exportBtn = $('exportBtn');
 
+  // Set footer year
   if ($('year')) $('year').textContent = new Date().getFullYear();
   if ($('printBtn')) $('printBtn').addEventListener('click', ()=> window.print());
 
+  // Helpers
+  function todayStr(){
+    const d = new Date();
+    return d.toLocaleDateString(); // auto locale
+  }
+
+  // Render numeric fields
   function renderFields(){
     inputsDiv.innerHTML = `
       <div class="field prefix-wrap">
@@ -51,6 +64,12 @@
         <input id="term" type="number" step="1" placeholder="örn. 120" />
       </div>
     `;
+
+    // Init meta
+    if (metaDate) metaDate.textContent = todayStr();
+    if (metaCustomer) metaCustomer.textContent = $('customerName')?.value || '—';
+    if (metaProperty) metaProperty.textContent = $('propertyName')?.value || '—';
+
     scheduleWrap.style.display='none';
     [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
       .forEach(el=>{ if(el) el.textContent='—'; });
@@ -72,7 +91,7 @@
     return v;
   }
 
-  // Build amortization schedule (not showing interest/principal columns in UI)
+  // Build amortization schedule
   function buildSchedule(P, r, n, pay){
     let bal = P, rows = [];
     for(let k=1;k<=n;k++){
@@ -85,10 +104,23 @@
     return rows;
   }
 
-  function toCSV(rows){
-    const header = 'Donem,Odeme,Bakiye\n';
+  // CSV with meta at the top
+  function toCSV(rows, meta){
+    const top =
+`Date,${meta.date}
+Customer,${meta.customer}
+Property,${meta.property}
+Currency,${meta.currency}
+Sale Price,${meta.sale}
+Down Payment,${meta.down}
+Balance After Down,${meta.balance}
+Total of Installments,${meta.totalInstallments}
+Total Interest,${meta.totalInterest}
+
+`;
+    const header = 'Period,Payment,Balance\n';
     const lines = rows.map(r=>[r.k, r.pay.toFixed(2), r.bal.toFixed(2)].join(','));
-    return header + lines.join('\n');
+    return top + header + lines.join('\n');
   }
 
   // Presets
@@ -106,6 +138,10 @@
     });
   }
 
+  // Keep meta labels synced with inputs
+  $('customerName')?.addEventListener('input', (e)=> { if(metaCustomer) metaCustomer.textContent = e.target.value || '—'; });
+  $('propertyName')?.addEventListener('input', (e)=> { if(metaProperty) metaProperty.textContent = e.target.value || '—'; });
+
   currencySel.addEventListener('change', updateCurrencySymbols);
 
   $('calcBtn').addEventListener('click', ()=>{
@@ -114,7 +150,7 @@
 
     const sale = Number(salePrice)||0;
     const downPay = Number(down)||0;
-    const P = Math.max(0, sale - downPay);         // Teslim Sonrası Bakiye (principal)
+    const P = Math.max(0, sale - downPay);         // Teslim Sonrası Bakiye
     const n = Number(term||0);
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
@@ -123,25 +159,29 @@
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
 
-    // Totals from schedule
-    const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0); // sum of paid installments
-    const interestOnLoan = totalInstallments - P;                    // pure interest on the financed balance
-    const totalInterestBurden = (downPay + totalInstallments) - sale;// equals interestOnLoan mathematically
+    // Totals
+    const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0);
+    const interestOnLoan = totalInstallments - P;
+    const totalInterestBurden = (downPay + totalInstallments) - sale; // equals interestOnLoan
 
-    // Fill "business" summary
+    // Business summary
     sbSale.textContent = fmt(sale, cur);
     sbDown.textContent = fmt(downPay, cur);
     sbBalance.textContent = fmt(P, cur);
     sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
     sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
 
-    // Fill "technical" summary
+    // Tech summary
     primaryValue.textContent = fmt(payment,cur);
     loanAmountEl.textContent = fmt(P,cur);
     totalPaid.textContent = fmt(totalInstallments,cur);
 
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
     payoffDate.textContent = end.toLocaleDateString();
+
+    if (metaDate) metaDate.textContent = todayStr();
+    if (metaCustomer) metaCustomer.textContent = $('customerName')?.value || '—';
+    if (metaProperty) metaProperty.textContent = $('propertyName')?.value || '—';
 
     summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
 
@@ -153,10 +193,29 @@
     </tr>`).join('');
     scheduleWrap.style.display = 'block';
 
-    exportBtn.dataset.csv = toCSV(rows);
+    // CSV meta
+    exportBtn.dataset.csv = toCSV(rows, {
+      date: metaDate?.textContent || todayStr(),
+      customer: metaCustomer?.textContent || '',
+      property: metaProperty?.textContent || '',
+      currency: cur,
+      sale: (sale||0).toFixed(2),
+      down: (downPay||0).toFixed(2),
+      balance: (P||0).toFixed(2),
+      totalInstallments: (totalInstallments||0).toFixed(2),
+      totalInterest: (totalInterestBurden||0).toFixed(2)
+    });
   });
 
-  $('resetBtn').addEventListener('click', renderFields);
+  $('resetBtn').addEventListener('click', ()=>{
+    // clear customer/property fields too
+    const cn = $('customerName'); if (cn) cn.value = '';
+    const pn = $('propertyName'); if (pn) pn.value = '';
+    renderFields();
+    if (metaCustomer) metaCustomer.textContent = '—';
+    if (metaProperty) metaProperty.textContent = '—';
+    if (metaDate) metaDate.textContent = todayStr();
+  });
 
   exportBtn.addEventListener('click', ()=>{
     const csv = exportBtn.dataset.csv || '';
@@ -169,5 +228,7 @@
     URL.revokeObjectURL(a.href);
   });
 
+  // Init
+  if (metaDate) metaDate.textContent = todayStr();
   renderFields();
 })();

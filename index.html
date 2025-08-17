@@ -56,6 +56,18 @@
           </div>
         </div>
 
+        <!-- New: Customer & Property -->
+        <div class="inputs-grid">
+          <div class="field">
+            <label for="customerName">Müşteri Adı</label>
+            <input id="customerName" type="text" placeholder="Ad Soyad" />
+          </div>
+          <div class="field">
+            <label for="propertyName">Proje / Daire Adı</label>
+            <input id="propertyName" type="text" placeholder="Örn. Sea Pearl B3-12" />
+          </div>
+        </div>
+
         <div id="presets" class="presets">
           <span class="muted">Hazır Planlar:</span>
           <button class="chip" data-sale="75000" data-down="20000" data-apr="8" data-term="120">£75,000 • £20,000 • 120 ay @ %8</button>
@@ -90,6 +102,13 @@
 
       <!-- RIGHT: SUMMARY -->
       <aside class="card summary-card">
+        <!-- New: Meta header -->
+        <div class="meta">
+          <div><span>Tarih</span><strong id="metaDate">—</strong></div>
+          <div><span>Müşteri</span><strong id="metaCustomer">—</strong></div>
+          <div><span>Proje/Daire</span><strong id="metaProperty">—</strong></div>
+        </div>
+
         <div class="stats">
           <div class="stat"><span>Satış Bedeli</span><strong id="sbSale">—</strong></div>
           <div class="stat"><span>Peşinat</span><strong id="sbDown">—</strong></div>
