@@ -1,413 +1,399 @@
-// app.js  (matches your latest index.html + styles.css)
-// Local demo auth (users + admin PIN) + calculator
-
+// app.js
 (function(){
   /* =========================
-     THEME (light/dark toggle)
-  ==========================*/
+     THEME TOGGLE (auto/light/dark)
+     ========================= */
+  const THEME_KEY = 'theme'; // 'light' | 'dark' | 'auto'
   const root = document.documentElement;
   const themeToggle = document.getElementById('themeToggle');
-  const THEME_KEY = 'theme_pref'; // 'light' | 'dark'
 
   function applyTheme(mode){
-    // normalize: only light/dark
-    const m = (mode === 'dark') ? 'dark' : 'light';
-    root.classList.toggle('light', m === 'light');
-    root.setAttribute('data-theme', m);
-    localStorage.setItem(THEME_KEY, m);
-    if (themeToggle){
-      themeToggle.textContent = m === 'light' ? '☀️' : '🌙';
-      themeToggle.title = `Tema: ${m}`;
+    root.classList.remove('light');
+    root.setAttribute('data-theme', mode);
+    if(mode === 'light'){ root.classList.add('light'); }
+    localStorage.setItem(THEME_KEY, mode);
+    if(themeToggle){
+      themeToggle.textContent = mode === 'light' ? '☀️' : (mode === 'dark' ? '🌙' : '🌗');
+      themeToggle.title = `Tema: ${mode}`;
     }
   }
   function initTheme(){
-    const saved = localStorage.getItem(THEME_KEY) || 'light';
-    applyTheme(saved);
+    const saved = localStorage.getItem(THEME_KEY);
+    applyTheme(saved || 'auto');
   }
-  function flipTheme(){
-    const cur = localStorage.getItem(THEME_KEY) || 'light';
-    applyTheme(cur === 'light' ? 'dark' : 'light');
+  function cycleTheme(){
+    const cur = localStorage.getItem(THEME_KEY) || 'auto';
+    const next = cur === 'auto' ? 'light' : (cur === 'light' ? 'dark' : 'auto');
+    applyTheme(next);
   }
-  themeToggle?.addEventListener('click', flipTheme);
+  if (themeToggle) themeToggle.addEventListener('click', cycleTheme);
   initTheme();
 
   /* =========================
-     DOM SHORTCUTS
-  ==========================*/
+     DOM SHORTCUTS & ELEMENTS
+     ========================= */
   const $ = (id)=>document.getElementById(id);
 
-  // Gate + App containers
-  const authGate   = $('authGate');
-  const appHeader  = $('appHeader');
-  const appMain    = $('appMain');
-  const appFooter  = $('appFooter');
-
-  // Gate controls
+  // Auth gate
+  const authGate = $('authGate');
   const loginUserSel = $('loginUserSel');
-  const loginPass    = $('loginPass');
-  const loginBtn     = $('loginBtn');
+  const loginPass = $('loginPass');
+  const loginBtn = $('loginBtn');
+  const logoutBtn = $('logoutBtn');
   const openAdminFromGate = $('openAdminFromGate');
 
-  // Header controls
-  const adminBtn  = $('adminBtn');
-  const logoutBtn = $('logoutBtn');
+  // App shell
+  const appHeader = $('appHeader');
+  const appMain = $('appMain');
+  const appFooter = $('appFooter');
+  const adminBtn = $('adminBtn');
 
   // Admin modal
-  const adminModal    = $('adminModal');
-  const adminClose    = $('adminClose');
-  const addUserBtn    = $('addUserBtn');
-  const changePinBtn  = $('changePinBtn');
-  const usersList     = $('usersList');
-  const newUserName   = $('newUserName');
-  const newUserEmail  = $('newUserEmail');
-  const newUserPhone  = $('newUserPhone');
-  const newUserPass   = $('newUserPass');
-  const oldPin        = $('oldPin');
-  const newPin        = $('newPin');
+  const adminModal = $('adminModal');
+  const adminClose = $('adminClose');
+  const usersList = $('usersList');
+  const addUserBtn = $('addUserBtn');
+  const newUserName = $('newUserName');
+  const newUserEmail = $('newUserEmail');
+  const newUserPhone = $('newUserPhone');
+  const newUserPass = $('newUserPass');
+  const oldPin = $('oldPin');
+  const newPin = $('newPin');
+  const changePinBtn = $('changePinBtn');
 
-  // Calculator form
-  const inputsDiv     = $('inputs');
-  const currencySel   = $('currency');
-  const compoundSel   = $('compound');
-  const interestFree  = $('interestFree');
+  // Calculator UI
+  const inputsDiv = $('inputs');
+  const currencySel = $('currency');
+  const compoundSel = $('compound');
+  const interestFree = $('interestFree');
   const currencyBadge = $('currencyBadge');
 
-  // Sales meta inputs
-  const activeUserSel = $('activeUser');
   const preparedByInp = $('preparedBy');
-  const customerName  = $('customerName');
-  const customerPhone = $('customerPhone');
-  const customerEmail = $('customerEmail');
-  const propertyName  = $('propertyName');
-  const propertyBlock = $('propertyBlock');
-  const propertyUnit  = $('propertyUnit');
-  const propertyType  = $('propertyType');
+  const customerNameInp = $('customerName');
+  const customerPhoneInp = $('customerPhone');
+  const customerEmailInp = $('customerEmail');
+  const propertyNameInp = $('propertyName');
+  const propertyBlockInp = $('propertyBlock');
+  const propertyUnitInp = $('propertyUnit');
+  const propertyTypeInp = $('propertyType');
 
-  // Summary (right)
-  const metaDate    = $('metaDate');
-  const metaCustomer= $('metaCustomer');
-  const metaProperty= $('metaProperty');
-  const metaPrepared= $('metaPrepared');
+  const metaDate = $('metaDate');
+  const metaCustomer = $('metaCustomer');
+  const metaProperty = $('metaProperty');
+  const metaPrepared = $('metaPrepared');
 
-  const sbSale  = $('sbSale');
-  const sbDown  = $('sbDown');
+  const sbSale = $('sbSale');
+  const sbDown = $('sbDown');
   const sbBalance = $('sbBalance');
   const sbBalancePlusInterest = $('sbBalancePlusInterest');
   const sbTotalBurden = $('sbTotalBurden');
 
   const primaryValue = $('primaryValue');
   const loanAmountEl = $('loanAmount');
-  const totalPaid    = $('totalPaid');
-  const payoffDate   = $('payoffDate');
-  const summary      = $('summary');
+  const totalPaid = $('totalPaid');
+  const payoffDate = $('payoffDate');
+  const summary = $('summary');
 
-  // Schedule table
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
-
-  // Actions
-  const calcBtn      = $('calcBtn');
-  const resetBtn     = $('resetBtn');
-  const exportBtn    = $('exportBtn');
-  const printBtn     = $('printBtn');
+  const exportBtn = $('exportBtn');
+  const printBtn = $('printBtn');
+  const calcBtn = $('calcBtn');
+  const resetBtn = $('resetBtn');
   const saveQuoteBtn = $('saveQuoteBtn');
   const clearQuotesBtn = $('clearQuotesBtn');
-  const savedList    = $('savedList');
+  const savedList = $('savedList');
 
-  // Footer year
+  const activeUserSel = $('activeUser');
+
   if ($('year')) $('year').textContent = new Date().getFullYear();
 
   /* =========================
      HELPERS
-  ==========================*/
+     ========================= */
   const sym = { GBP:'£', EUR:'€', USD:'$' };
-  const todayStr = () => new Date().toLocaleDateString();
   const fmt = (v, cur='GBP') =>
     isFinite(v) ? (sym[cur]||'') + Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
-  function getSymbol(){ return sym[currencySel?.value] || ''; }
-
-  function show(el){ el && (el.classList.remove('hidden'), el.style.display=''); }
-  function hide(el){ el && (el.classList.add('hidden')); }
-
-  function openModal(){ if (adminModal){ adminModal.style.display='flex'; adminModal.style.alignItems='center'; adminModal.style.justifyContent='center'; } }
-  function closeModal(){ if (adminModal){ adminModal.style.display='none'; } }
-
-  function setSessionUser(username){
-    localStorage.setItem('sessionUser', username || '');
-  }
-  function getSessionUser(){ return localStorage.getItem('sessionUser') || ''; }
+  const todayStr = () => new Date().toLocaleDateString();
+  function getSymbol(){ return sym[currencySel.value] || ''; }
 
   /* =========================
-     LOCAL STORAGE: USERS & PIN
-  ==========================*/
-  function getUsers(){
-    try{ return JSON.parse(localStorage.getItem('users') || '[]'); }catch{ return []; }
+     AUTH / USERS (localStorage)
+     ========================= */
+  const USERS_KEY = 'noy_users';
+  const ADMIN_PIN_KEY = 'adminPIN';
+  const SESSION_KEY = 'noy_session_user';
+
+  function loadUsers(){
+    try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); } catch { return []; }
   }
-  function setUsers(arr){
-    localStorage.setItem('users', JSON.stringify(arr));
+  function saveUsers(arr){
+    localStorage.setItem(USERS_KEY, JSON.stringify(arr));
   }
-  function ensureSeed(){
-    // Seed once
-    if (!localStorage.getItem('adminPin')) localStorage.setItem('adminPin','1234');
-    const users = getUsers();
-    if (users.length === 0){
-      setUsers([
-        { name:'Admin', email:'admin@noyanlar.com', phone:'', pass:'admin' },
-        { name:'Sales Team', email:'sales@noyanlar.com', phone:'', pass:'sales' }
-      ]);
+  function seedUsersIfEmpty(){
+    let users = loadUsers();
+    if(users.length === 0){
+      users = [{
+        id: cryptoRandomId(),
+        name: 'Admin',
+        email: 'admin@noyanlar.com',
+        phone: '',
+        role: 'admin',
+        pass: '1234'
+      }];
+      saveUsers(users);
+    }
+    if(!localStorage.getItem(ADMIN_PIN_KEY)){
+      localStorage.setItem(ADMIN_PIN_KEY, '1234');
     }
   }
-  ensureSeed();
-
-  /* =========================
-     AUTH: POPULATE & FLOW
-  ==========================*/
-  function populateLoginUsers(){
-    if (!loginUserSel) return;
-    loginUserSel.innerHTML = '';
-    getUsers().forEach((u, idx)=>{
-      const opt = document.createElement('option');
-      opt.value = String(idx);
-      opt.textContent = u.name || (`Kullanıcı ${idx+1}`);
-      loginUserSel.appendChild(opt);
-    });
-  }
-  function populateActiveUser(){
-    if (!activeUserSel) return;
-    activeUserSel.innerHTML = '<option value="">—</option>';
-    getUsers().forEach((u, idx)=>{
-      const opt = document.createElement('option');
-      opt.value = String(idx);
-      opt.textContent = u.name || (`Kullanıcı ${idx+1}`);
-      activeUserSel.appendChild(opt);
-    });
-  }
-
-  function enterAppAs(userName){
-    hide(authGate);
-    show(appHeader); show(appMain); show(appFooter);
-    preparedByInp.value = userName || preparedByInp.value || '';
-    metaPrepared.textContent = preparedByInp.value || '—';
-    setSessionUser(userName || '');
-    populateActiveUser();
-    // preselect active user to this session user
-    const idx = getUsers().findIndex(u=>u.name===userName);
-    if (idx >= 0) activeUserSel.value = String(idx);
-  }
-
-  function leaveApp(){
-    show(authGate);
-    hide(appHeader); hide(appMain); hide(appFooter);
-    setSessionUser('');
-  }
-
-  // Gate -> Login
-  loginBtn?.addEventListener('click', ()=>{
-    const users = getUsers();
-    const i = Number(loginUserSel?.value ?? -1);
-    if (!users[i]){ alert('Kullanıcı seçin.'); return; }
-    const ok = (loginPass?.value || '') === (users[i].pass || '');
-    if (!ok){ alert('Şifre hatalı.'); return; }
-    enterAppAs(users[i].name || 'Kullanıcı');
-    loginPass.value = '';
-  });
-
-  // Admin access from gate (PIN)
-  openAdminFromGate?.addEventListener('click', ()=>{
-    const pin = localStorage.getItem('adminPin') || '1234';
-    const input = prompt('Admin PIN');
-    if (input === pin){
-      openModal();
-      renderUsersList();
-    } else {
-      alert('PIN hatalı.');
+  function cryptoRandomId(){
+    try{
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11)
+        .replace(/[018]/g, function(c){
+          return (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16);
+        });
+    }catch{
+      return 'u_' + Math.random().toString(36).slice(2,10);
     }
-  });
+  }
 
-  // Header: Admin button (ask PIN again)
-  adminBtn?.addEventListener('click', ()=>{
-    const pin = localStorage.getItem('adminPin') || '1234';
-    const input = prompt('Admin PIN');
-    if (input === pin){
-      openModal();
-      renderUsersList();
-    } else {
-      alert('PIN hatalı.');
-    }
-  });
+  function getSessionId(){ return localStorage.getItem(SESSION_KEY) || ''; }
+  function setSessionId(id){ localStorage.setItem(SESSION_KEY, id); }
+  function clearSession(){ localStorage.removeItem(SESSION_KEY); }
 
-  // Logout
-  logoutBtn?.addEventListener('click', ()=>{
-    leaveApp();
-  });
+  function getUserById(id){ return loadUsers().find(function(u){ return u.id===id; }); }
+  function currentUser(){ return getUserById(getSessionId()); }
+  function isAdmin(){ return (currentUser() && currentUser().role === 'admin'); }
 
-  // If session exists, skip gate
-  (function restoreSession(){
-    const s = getSessionUser();
-    if (s){
-      hide(authGate);
-      show(appHeader); show(appMain); show(appFooter);
-      preparedByInp.value = s;
-      metaPrepared.textContent = s;
-      populateActiveUser();
-      const idx = getUsers().findIndex(u=>u.name===s);
-      if (idx >= 0) activeUserSel.value = String(idx);
-    } else {
-      populateLoginUsers();
-      populateActiveUser();
-    }
-  })();
+  function renderLoginUsers(){
+    const users = loadUsers();
+    loginUserSel.innerHTML = users.map(function(u){
+      return '<option value="'+u.id+'">'+u.name+(u.role==='admin'?' (Admin)':'')+'</option>';
+    }).join('');
+  }
+  function renderActiveUserSelect(){
+    const users = loadUsers();
+    const curId = getSessionId();
+    const blank = '<option value="">—</option>';
+    const opts = users.map(function(u){
+      return '<option value="'+u.id+'" '+(u.id===curId?'selected':'')+'>'+u.name+(u.role==='admin'?' (Admin)':'')+'</option>';
+    }).join('');
+    activeUserSel.innerHTML = blank + opts;
+  }
 
-  /* =========================
-     ADMIN MODAL LOGIC
-  ==========================*/
   function renderUsersList(){
-    if (!usersList) return;
-    const users = getUsers();
-    if (!users.length){ usersList.innerHTML = '<p class="muted">Henüz kullanıcı yok.</p>'; return; }
+    const users = loadUsers();
+    const cur = currentUser();
     usersList.innerHTML = '';
-    users.forEach((u, idx)=>{
+    if(users.length === 0){
+      usersList.innerHTML = '<p class="muted">Kayıtlı kullanıcı yok.</p>';
+      return;
+    }
+    const adminCount = users.filter(function(u){ return u.role==='admin'; }).length;
+
+    users.forEach(function(u){
       const row = document.createElement('div');
       row.className = 'saved-list-item';
-      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; margin:6px 0; background:var(--chip)';
-      row.innerHTML = `
-        <div>
-          <strong>${u.name||'—'}</strong>
-          <div class="muted" style="font-size:12px">${u.email||''} ${u.phone?(' • '+u.phone):''}</div>
-        </div>
-        <div class="actions" style="display:flex;gap:8px">
-          <button class="btn tiny" data-edit="${idx}">Düzenle</button>
-          <button class="btn tiny secondary" data-del="${idx}">Sil</button>
-        </div>
-      `;
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin:6px 0;background:var(--chip)';
+      row.innerHTML =
+        '<div>' +
+          '<strong>'+u.name+'</strong> ' + (u.role==='admin' ? '<span class="muted">• Admin</span>' : '') +
+          '<div class="muted" style="font-size:12px">'+(u.email||'')+(u.phone ? ' • '+u.phone : '')+'</div>' +
+        '</div>' +
+        '<div class="actions" style="display:flex;gap:8px">' +
+          '<button class="btn tiny secondary" data-act="del" data-id="'+u.id+'">Sil</button>' +
+        '</div>';
+
+      const delBtn = row.querySelector('[data-act="del"]');
+      delBtn.addEventListener('click', function(){
+        if(u.role==='admin' && adminCount<=1){
+          alert('En az bir admin kalmalı.');
+          return;
+        }
+        if(cur && cur.id === u.id){
+          if(!confirm('Kendinizi siliyorsunuz. Devam ederseniz oturum kapanacak. Onaylıyor musunuz?')) return;
+        }else{
+          if(!confirm('"'+u.name+'" kullanıcısı silinsin mi?')) return;
+        }
+        const arr = loadUsers().filter(function(x){ return x.id!==u.id; });
+        saveUsers(arr);
+        renderUsersList();
+        renderLoginUsers();
+        renderActiveUserSelect();
+        if(cur && cur.id === u.id){
+          handleLogout();
+        }
+      });
       usersList.appendChild(row);
     });
-
-    // Delegated actions
-    usersList.onclick = (e)=>{
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const del = btn.getAttribute('data-del');
-      const edit = btn.getAttribute('data-edit');
-      if (del!==null){
-        const arr = getUsers();
-        arr.splice(Number(del),1);
-        setUsers(arr);
-        renderUsersList();
-        populateLoginUsers();
-        populateActiveUser();
-      } else if (edit!==null){
-        const arr = getUsers();
-        const i = Number(edit);
-        const name = prompt('Ad Soyad', arr[i].name || '');
-        if (name===null) return;
-        const email = prompt('E-posta', arr[i].email || '');
-        if (email===null) return;
-        const phone = prompt('Telefon', arr[i].phone || '');
-        if (phone===null) return;
-        const pass = prompt('Şifre', arr[i].pass || '');
-        if (pass===null) return;
-        arr[i] = { name, email, phone, pass };
-        setUsers(arr);
-        renderUsersList();
-        populateLoginUsers();
-        populateActiveUser();
-      }
-    };
   }
 
-  addUserBtn?.addEventListener('click', ()=>{
-    const name = (newUserName?.value || '').trim();
-    const pass = (newUserPass?.value || '').trim();
-    if (!name || !pass){ alert('Ad Soyad ve Şifre zorunlu.'); return; }
-    const email = (newUserEmail?.value || '').trim();
-    const phone = (newUserPhone?.value || '').trim();
-    const arr = getUsers();
-    arr.push({ name, email, phone, pass });
-    setUsers(arr);
-    newUserName.value = ''; newUserPass.value=''; newUserEmail.value=''; newUserPhone.value='';
+  function showAdminModal(){
+    if (adminModal) adminModal.classList.add('show');
     renderUsersList();
-    populateLoginUsers();
-    populateActiveUser();
+  }
+  function hideAdminModal(){
+    if (adminModal) adminModal.classList.remove('show');
+  }
+
+  function requireAdminThen(fn){
+    if(isAdmin()){ fn(); return; }
+    const pin = prompt('Admin PIN?');
+    const curPin = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
+    if(pin && pin === curPin){ fn(); }
+    else if(pin !== null){ alert('Hatalı PIN.'); }
+  }
+
+  // Gate show/hide
+  function showApp(){
+    if (authGate) authGate.classList.add('hidden');
+    if (appHeader) appHeader.classList.remove('hidden');
+    if (appMain) appMain.classList.remove('hidden');
+    if (appFooter) appFooter.classList.remove('hidden');
+  }
+  function showGate(){
+    if (authGate) authGate.classList.remove('hidden');
+    if (appHeader) appHeader.classList.add('hidden');
+    if (appMain) appMain.classList.add('hidden');
+    if (appFooter) appFooter.classList.add('hidden');
+  }
+
+  // Login / Logout
+  function handleLogin(){
+    const id = loginUserSel.value;
+    const pass = loginPass.value || '';
+    const u = getUserById(id);
+    if(!u){ alert('Kullanıcı bulunamadı.'); return; }
+    if((u.pass||'') !== pass){ alert('Şifre hatalı.'); return; }
+    setSessionId(u.id);
+    preparedByInp.value = u.name || '';
+    localStorage.setItem('preparedBy', preparedByInp.value || '');
+    metaPrepared.textContent = preparedByInp.value || '—';
+    renderActiveUserSelect();
+    showApp();
+  }
+
+  function handleLogout(){
+    clearSession();
+    if (loginPass) loginPass.value = '';
+    showGate();
+  }
+
+  // Admin actions
+  if (addUserBtn) addUserBtn.addEventListener('click', function(){
+    requireAdminThen(function(){
+      const name = (newUserName.value||'').trim();
+      const email = (newUserEmail.value||'').trim();
+      const phone = (newUserPhone.value||'').trim();
+      const pass = (newUserPass.value||'').trim();
+      if(!name || !pass){ alert('Ad ve şifre zorunlu.'); return; }
+      const users = loadUsers();
+      users.push({ id: cryptoRandomId(), name: name, email: email, phone: phone, role:'user', pass: pass });
+      saveUsers(users);
+      newUserName.value = '';
+      newUserEmail.value = '';
+      newUserPhone.value = '';
+      newUserPass.value = '';
+      renderUsersList();
+      renderLoginUsers();
+      renderActiveUserSelect();
+      alert('Kullanıcı eklendi.');
+    });
   });
 
-  changePinBtn?.addEventListener('click', ()=>{
-    const cur = localStorage.getItem('adminPin') || '1234';
-    const old = (oldPin?.value || '').trim();
-    const neu = (newPin?.value || '').trim();
-    if (old !== cur){ alert('Mevcut PIN yanlış.'); return; }
-    if (!/^\d{4,6}$/.test(neu)){ alert('Yeni PIN 4-6 haneli olmalı.'); return; }
-    localStorage.setItem('adminPin', neu);
-    oldPin.value=''; newPin.value='';
-    alert('PIN güncellendi.');
+  if (changePinBtn) changePinBtn.addEventListener('click', function(){
+    requireAdminThen(function(){
+      const cur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
+      if((oldPin.value||'') !== cur){ alert('Mevcut PIN yanlış.'); return; }
+      if(!(newPin.value||'').trim()){ alert('Yeni PIN boş olamaz.'); return; }
+      localStorage.setItem(ADMIN_PIN_KEY, newPin.value.trim());
+      oldPin.value = '';
+      newPin.value = '';
+      alert('Admin PIN güncellendi.');
+    });
   });
 
-  adminClose?.addEventListener('click', closeModal);
-  // Close on backdrop click (optional)
-  adminModal?.addEventListener('click', (e)=>{ if (e.target === adminModal) closeModal(); });
+  if (adminBtn) adminBtn.addEventListener('click', function(){
+    requireAdminThen(showAdminModal);
+  });
+  if (openAdminFromGate) openAdminFromGate.addEventListener('click', function(){
+    requireAdminThen(showAdminModal);
+  });
+  if (adminClose) adminClose.addEventListener('click', hideAdminModal);
+
+  // Auth gate buttons
+  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+  if (activeUserSel) activeUserSel.addEventListener('change', function(){
+    const id = activeUserSel.value;
+    if(!id) return;
+    const u = getUserById(id);
+    if(!u) return;
+    setSessionId(u.id);
+    preparedByInp.value = u.name || '';
+    localStorage.setItem('preparedBy', preparedByInp.value || '');
+    metaPrepared.textContent = preparedByInp.value || '—';
+  });
 
   /* =========================
-     CALCULATOR UI
-  ==========================*/
+     CALCULATOR UI RENDER
+     ========================= */
   function renderFields(){
-    if (!inputsDiv) return;
-    inputsDiv.innerHTML = `
-      <div class="field prefix-wrap">
-        <label for="salePrice">Satış Fiyatı</label>
-        <span class="prefix" id="symSale">${getSymbol()}</span>
-        <input id="salePrice" type="number" step="0.01" placeholder="örn. 75,000" />
-      </div>
-      <div class="field prefix-wrap">
-        <label for="down">Peşinat</label>
-        <span class="prefix" id="symDown">${getSymbol()}</span>
-        <input id="down" type="number" step="0.01" placeholder="örn. 20,000" />
-      </div>
-      <div class="field">
-        <label for="apr">Yıllık Faiz Oranı (%)</label>
-        <input id="apr" type="number" step="0.01" placeholder="örn. 3.75" ${interestFree?.checked ? 'disabled' : ''}/>
-      </div>
-      <div class="field">
-        <label for="term">Vade (ay)</label>
-        <input id="term" type="number" step="1" placeholder="örn. 120" />
-      </div>
-    `;
+    inputsDiv.innerHTML =
+      '<div class="field prefix-wrap">' +
+        '<label for="salePrice">Satış Fiyatı</label>' +
+        '<span class="prefix" id="symSale">'+getSymbol()+'</span>' +
+        '<input id="salePrice" type="number" step="0.01" placeholder="örn. 75,000" />' +
+      '</div>' +
+      '<div class="field prefix-wrap">' +
+        '<label for="down">Peşinat</label>' +
+        '<span class="prefix" id="symDown">'+getSymbol()+'</span>' +
+        '<input id="down" type="number" step="0.01" placeholder="örn. 20,000" />' +
+      '</div>' +
+      '<div class="field">' +
+        '<label for="apr">Yıllık Faiz Oranı (%)</label>' +
+        '<input id="apr" type="number" step="0.01" placeholder="örn. 3.75" '+(interestFree.checked ? 'disabled' : '')+'/>' +
+      '</div>' +
+      '<div class="field">' +
+        '<label for="term">Vade (ay)</label>' +
+        '<input id="term" type="number" step="1" placeholder="örn. 120" />' +
+      '</div>';
 
-    scheduleWrap && (scheduleWrap.style.display='none');
+    scheduleWrap.style.display='none';
     [primaryValue, loanAmountEl, totalPaid, payoffDate, sbSale, sbDown, sbBalance, sbBalancePlusInterest, sbTotalBurden]
-      .forEach(el=> el && (el.textContent='—'));
-    summary && (summary.textContent = 'Değerleri girip “Hesapla”ya basın.');
-    metaDate && (metaDate.textContent = todayStr());
+      .forEach(function(el){ el.textContent='—'; });
+    summary.textContent = 'Değerleri girip “Hesapla”ya basın.';
+    metaDate.textContent = todayStr();
 
-    // restore preparedBy
-    if (preparedByInp){
-      preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
-      metaPrepared && (metaPrepared.textContent = preparedByInp.value || '—');
-    }
+    preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
+    metaPrepared.textContent = preparedByInp.value || '—';
   }
 
   function updateCurrencyUI(){
-    if (!currencySel || !currencyBadge) return;
-    currencyBadge.textContent = `Para Birimi: ${currencySel.value} (${getSymbol()})`;
+    currencyBadge.textContent = 'Para Birimi: ' + currencySel.value + ' ('+getSymbol()+')';
     const sale = $('symSale'), down = $('symDown');
     if (sale) sale.textContent = getSymbol();
     if (down) down.textContent = getSymbol();
   }
 
   function collectValues(){
-    const salePrice = Number(($('salePrice')||{}).value || 0);
-    const down = Number(($('down')||{}).value || 0);
-    const apr = interestFree?.checked ? 0 : Number(($('apr')||{}).value || 0);
-    const term = Number(($('term')||{}).value || 0);
-    return { salePrice, down, apr, term };
+    const salePrice = Number((($('salePrice')||{}).value) || 0);
+    const down = Number((($('down')||{}).value) || 0);
+    const apr = interestFree.checked ? 0 : Number((($('apr')||{}).value) || 0);
+    const term = Number((($('term')||{}).value) || 0);
+    return { salePrice: salePrice, down: down, apr: apr, term: term };
   }
 
   function buildSchedule(P, r, n, pay){
-    let bal = P, rows = [];
+    let bal = P;
+    const rows = [];
     for(let k=1;k<=n;k++){
       const interest = r===0 ? 0 : bal*r;
       const principal = Math.min(bal, pay - interest);
       bal = Math.max(0, bal - principal);
-      rows.push({k, pay, bal});
+      rows.push({k: k, pay: pay, bal: bal});
       if (bal<=0) break;
     }
     return rows;
@@ -415,91 +401,96 @@
 
   function toCSV(rows, meta){
     const top =
-`Date,${meta.date}
-Prepared By,${meta.preparedBy}
-Customer,${meta.customer}
-Phone,${meta.phone}
-Email,${meta.email}
-Property,${meta.property}
-Block,${meta.block}
-Unit,${meta.unit}
-Type,${meta.type}
-Currency,${meta.currency}
-Sale Price,${meta.sale}
-Down Payment,${meta.down}
-Balance After Down,${meta.balance}
-Total of Installments,${meta.totalInstallments}
-Total Interest,${meta.totalInterest}
+'Date,'+meta.date+'\n'+
+'Prepared By,'+meta.preparedBy+'\n'+
+'Customer,'+meta.customer+'\n'+
+'Phone,'+meta.phone+'\n'+
+'Email,'+meta.email+'\n'+
+'Property,'+meta.property+'\n'+
+'Block,'+meta.block+'\n'+
+'Unit,'+meta.unit+'\n'+
+'Type,'+meta.type+'\n'+
+'Currency,'+meta.currency+'\n'+
+'Sale Price,'+meta.sale+'\n'+
+'Down Payment,'+meta.down+'\n'+
+'Balance After Down,'+meta.balance+'\n'+
+'Total of Installments,'+meta.totalInstallments+'\n'+
+'Total Interest,'+meta.totalInterest+'\n\n';
 
-`;
     const header = 'Period,Payment,Balance\n';
-    const lines = rows.map(r=>[r.k, r.pay.toFixed(2), r.bal.toFixed(2)].join(','));
+    const lines = rows.map(function(r){
+      return [r.k, r.pay.toFixed(2), r.bal.toFixed(2)].join(',');
+    });
     return top + header + lines.join('\n');
   }
 
+  /* =========================
+     CALC / SUMMARY / TABLE
+     ========================= */
   function syncMeta(){
-    if (metaDate) metaDate.textContent = todayStr();
-    if (metaCustomer) metaCustomer.textContent = (customerName?.value || '').trim() || '—';
-    const propBits = [
-      propertyName?.value,
-      propertyBlock?.value && `Blok ${propertyBlock.value}`,
-      propertyUnit?.value && `No ${propertyUnit.value}`,
-      propertyType?.value
-    ].filter(Boolean).join(' • ');
-    if (metaProperty) metaProperty.textContent = propBits || '—';
-    if (metaPrepared) metaPrepared.textContent = (preparedByInp?.value || '').trim() || '—';
+    metaDate.textContent = todayStr();
+    metaCustomer.textContent = (customerNameInp.value || '').trim() || '—';
+    const propBits = [propertyNameInp.value, propertyBlockInp.value && ('Blok '+propertyBlockInp.value), propertyUnitInp.value && ('No '+propertyUnitInp.value), propertyTypeInp.value]
+      .filter(Boolean).join(' • ');
+    metaProperty.textContent = propBits || '—';
+    metaPrepared.textContent = (preparedByInp.value || '').trim() || '—';
   }
 
   function calculate(){
-    const cur = currencySel?.value || 'GBP';
-    const { salePrice=0, down=0, apr=0, term=0 } = collectValues();
-
-    const sale = Number(salePrice)||0;
-    const downPay = Number(down)||0;
+    const cur = currencySel.value;
+    const vals = collectValues();
+    const sale = Number(vals.salePrice) || 0;
+    const downPay = Number(vals.down) || 0;
     const P = Math.max(0, sale - downPay);
-    const n = Number(term||0);
-    const m = Number(compoundSel?.value || 12);
-    const r = Number(apr||0)/100/m;
+    const n = Number(vals.term || 0);
+    const m = Number(compoundSel.value);
+    const r = Number(vals.apr || 0) / 100 / m;
 
-    if(n<=0){ summary && (summary.textContent = 'Lütfen geçerli vade (ay) girin.'); return; }
+    if(n<=0){
+      summary.textContent = 'Lütfen geçerli vade (ay) girin.';
+      return;
+    }
 
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
-    const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0);
+
+    const totalInstallments = rows.reduce(function(s,row){ return s + row.pay; }, 0);
     const totalInterestBurden = (downPay + totalInstallments) - sale;
 
-    if (sbSale) sbSale.textContent = fmt(sale, cur);
-    if (sbDown) sbDown.textContent = fmt(downPay, cur);
-    if (sbBalance) sbBalance.textContent = fmt(P, cur);
-    if (sbBalancePlusInterest) sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
-    if (sbTotalBurden) sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
+    // Business summary
+    sbSale.textContent = fmt(sale, cur);
+    sbDown.textContent = fmt(downPay, cur);
+    sbBalance.textContent = fmt(P, cur);
+    sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
+    sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
 
-    if (primaryValue) primaryValue.textContent = fmt(payment,cur);
-    if (loanAmountEl) loanAmountEl.textContent = fmt(P,cur);
-    if (totalPaid) totalPaid.textContent = fmt(totalInstallments,cur);
+    // Technical summary
+    primaryValue.textContent = fmt(payment,cur);
+    loanAmountEl.textContent = fmt(P,cur);
+    totalPaid.textContent = fmt(totalInstallments,cur);
 
     const end = new Date(); end.setMonth(end.getMonth() + rows.length);
-    if (payoffDate) payoffDate.textContent = end.toLocaleDateString();
+    payoffDate.textContent = end.toLocaleDateString();
 
-    if (summary) summary.textContent = `Satış ${fmt(sale,cur)}, Peşinat ${fmt(downPay,cur)} → Kredi ${fmt(P,cur)}, ${rows.length} ay, APR ~ ${(r*m*100).toFixed(3)}%.`;
+    summary.textContent = 'Satış '+fmt(sale,cur)+', Peşinat '+fmt(downPay,cur)+' → Kredi '+fmt(P,cur)+', '+rows.length+' ay, APR ~ '+(r*m*100).toFixed(3)+'%.';
 
-    if (scheduleBody) scheduleBody.innerHTML = rows.map(rw=>`<tr>
-      <td>${rw.k}</td>
-      <td>${fmt(rw.pay,cur)}</td>
-      <td>${fmt(rw.bal,cur)}</td>
-    </tr>`).join('');
-    if (scheduleWrap) scheduleWrap.style.display = 'block';
+    // Table
+    scheduleBody.innerHTML = rows.map(function(rw){
+      return '<tr><td>'+rw.k+'</td><td>'+fmt(rw.pay,cur)+'</td><td>'+fmt(rw.bal,cur)+'</td></tr>';
+    }).join('');
+    scheduleWrap.style.display = 'block';
 
-    if (exportBtn) exportBtn.dataset.csv = toCSV(rows, {
-      date: metaDate?.textContent || todayStr(),
-      preparedBy: preparedByInp?.value || '',
-      customer: customerName?.value || '',
-      phone: customerPhone?.value || '',
-      email: customerEmail?.value || '',
-      property: propertyName?.value || '',
-      block: propertyBlock?.value || '',
-      unit: propertyUnit?.value || '',
-      type: propertyType?.value || '',
+    // CSV meta
+    exportBtn.dataset.csv = toCSV(rows, {
+      date: metaDate.textContent || todayStr(),
+      preparedBy: preparedByInp.value || '',
+      customer: customerNameInp.value || '',
+      phone: customerPhoneInp.value || '',
+      email: customerEmailInp.value || '',
+      property: propertyNameInp.value || '',
+      block: propertyBlockInp.value || '',
+      unit: propertyUnitInp.value || '',
+      type: propertyTypeInp.value || '',
       currency: cur,
       sale: (sale||0).toFixed(2),
       down: (downPay||0).toFixed(2),
@@ -510,47 +501,120 @@ Total Interest,${meta.totalInterest}
   }
 
   /* =========================
-     EVENTS (Calc & UI)
-  ==========================*/
-  preparedByInp?.addEventListener('input', ()=>{
+     SAVED QUOTES
+     ========================= */
+  function getQuotes(){
+    try{ return JSON.parse(localStorage.getItem('quotes')||'[]'); }catch(e){ return []; }
+  }
+  function setQuotes(arr){
+    localStorage.setItem('quotes', JSON.stringify(arr));
+    renderSavedList();
+  }
+  function renderSavedList(){
+    const items = getQuotes();
+    savedList.innerHTML = items.length ? '' : '<li class="id">Henüz kayıt yok.</li>';
+    items.forEach(function(q, idx){
+      const li = document.createElement('li');
+      const left = document.createElement('div');
+      left.innerHTML = '<strong>'+(q.customer||'—')+'</strong> · '+(q.property||'—')+' <span class="id">('+(q.date)+')</span>';
+      const right = document.createElement('div'); right.className='actions';
+      const loadBtn = document.createElement('button'); loadBtn.className='btn tiny'; loadBtn.textContent='Yükle';
+      const delBtn = document.createElement('button'); delBtn.className='btn tiny secondary'; delBtn.textContent='Sil';
+      loadBtn.onclick = function(){ loadQuote(idx); };
+      delBtn.onclick = function(){
+        const arr=getQuotes(); arr.splice(idx,1); setQuotes(arr);
+      };
+      right.appendChild(loadBtn); right.appendChild(delBtn);
+      li.appendChild(left); li.appendChild(right);
+      savedList.appendChild(li);
+    });
+  }
+  function loadQuote(i){
+    const q = getQuotes()[i]; if(!q) return;
+    preparedByInp.value = q.preparedBy||'';
+    customerNameInp.value = q.customer||'';
+    customerPhoneInp.value = q.phone||'';
+    customerEmailInp.value = q.email||'';
+    propertyNameInp.value = q.property||'';
+    propertyBlockInp.value = q.block||'';
+    propertyUnitInp.value = q.unit||'';
+    propertyTypeInp.value = q.type||'';
     localStorage.setItem('preparedBy', preparedByInp.value||'');
-    if (metaPrepared) metaPrepared.textContent = preparedByInp.value.trim() || '—';
+    currencySel.value = q.currency||currencySel.value;
+    localStorage.setItem('currency', currencySel.value);
+    renderFields();
+    $('salePrice').value = q.sale||0;
+    $('down').value = q.down||0;
+    $('apr').value = q.apr||0;
+    $('term').value = q.term||0;
+    interestFree.checked = (q.apr === 0);
+    $('apr').disabled = interestFree.checked;
+    updateCurrencyUI();
+    syncMeta();
+    calcBtn.click();
+  }
+
+  /* =========================
+     EVENTS
+     ========================= */
+  if (printBtn) printBtn.addEventListener('click', function(){
+    const customer = (customerNameInp.value || 'Musteri').trim().replace(/\s+/g,'_');
+    const property = (propertyNameInp.value || 'Proje').trim().replace(/\s+/g,'_');
+    const date = new Date().toISOString().slice(0,10);
+    const prevTitle = document.title;
+    document.title = 'Noyanlar_'+customer+'_'+property+'_'+date;
+    window.print();
+    setTimeout(function(){ document.title = prevTitle; }, 300);
   });
 
-  [customerName, customerPhone, customerEmail, propertyName, propertyBlock, propertyUnit, propertyType]
-    .forEach(inp=> inp && inp.addEventListener('input', syncMeta));
+  if (currencySel) currencySel.addEventListener('change', function(){
+    localStorage.setItem('currency', currencySel.value);
+    updateCurrencyUI();
+  });
+  if (compoundSel) compoundSel.addEventListener('change', function(){ /* no-op */ });
 
-  activeUserSel?.addEventListener('change', ()=>{
-    const users = getUsers();
-    const i = Number(activeUserSel.value || -1);
-    if (users[i]){
-      preparedByInp.value = users[i].name || '';
-      metaPrepared.textContent = preparedByInp.value || '—';
-      localStorage.setItem('preparedBy', preparedByInp.value||'');
-    }
+  if (interestFree) interestFree.addEventListener('change', function(){
+    const aprInput = $('apr');
+    if (interestFree.checked){ if (aprInput) { aprInput.value = 0; aprInput.disabled = true; } }
+    else { if (aprInput) aprInput.disabled = false; }
   });
 
-  $('presets')?.addEventListener('click', (e)=>{
+  if (preparedByInp) preparedByInp.addEventListener('input', function(){
+    localStorage.setItem('preparedBy', preparedByInp.value||'');
+    metaPrepared.textContent = (preparedByInp.value || '').trim() || '—';
+  });
+
+  [customerNameInp, customerPhoneInp, customerEmailInp,
+   propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp]
+   .forEach(function(inp){
+     if (!inp) return;
+     inp.addEventListener('input', syncMeta);
+   });
+
+  const presets = $('presets');
+  if (presets) presets.addEventListener('click', function(e){
     const b = e.target.closest('.chip');
     if(!b) return;
     renderFields();
-    $('salePrice').value = Number(b.dataset.sale||0);
-    $('down').value = Number(b.dataset.down||0);
-    $('apr').value = Number(b.dataset.apr||0);
-    $('term').value = Number(b.dataset.term||0);
+    $('salePrice').value = Number(b.getAttribute('data-sale')||0);
+    $('down').value = Number(b.getAttribute('data-down')||0);
+    $('apr').value = Number(b.getAttribute('data-apr')||0);
+    $('term').value = Number(b.getAttribute('data-term')||0);
     calculate();
   });
 
-  calcBtn?.addEventListener('click', ()=>{ syncMeta(); calculate(); });
+  if (calcBtn) calcBtn.addEventListener('click', function(){ syncMeta(); calculate(); });
 
-  resetBtn?.addEventListener('click', ()=>{
-    [customerName, customerPhone, customerEmail, propertyName, propertyBlock, propertyUnit, propertyType]
-      .forEach(i=> i && (i.value=''));
+  if (resetBtn) resetBtn.addEventListener('click', function(){
+    [customerNameInp, customerPhoneInp, customerEmailInp,
+     propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp].forEach(function(i){
+       if (i) i.value='';
+     });
     syncMeta();
     renderFields();
   });
 
-  exportBtn?.addEventListener('click', ()=>{
+  if (exportBtn) exportBtn.addEventListener('click', function(){
     const csv = exportBtn.dataset.csv || '';
     if(!csv){ alert('Bu ekran için dışa aktarılacak amortisman yok.'); return; }
     const blob = new Blob([csv], {type:'text/csv'});
@@ -561,124 +625,58 @@ Total Interest,${meta.totalInterest}
     URL.revokeObjectURL(a.href);
   });
 
-  printBtn?.addEventListener('click', ()=>{
-    const customer = (customerName?.value || 'Musteri').trim().replace(/\s+/g,'_');
-    const property = (propertyName?.value || 'Proje').trim().replace(/\s+/g,'_');
-    const date = new Date().toISOString().slice(0,10);
-    const prevTitle = document.title;
-    document.title = `Noyanlar_${customer}_${property}_${date}`;
-    window.print();
-    setTimeout(()=>{ document.title = prevTitle; }, 300);
-  });
-
-  currencySel?.addEventListener('change', ()=>{
-    localStorage.setItem('currency', currencySel.value);
-    updateCurrencyUI();
-  });
-
-  compoundSel?.addEventListener('change', ()=>{ /* keep for future use */ });
-
-  interestFree?.addEventListener('change', ()=>{
-    const aprInput = $('apr');
-    if (interestFree.checked){ if (aprInput){ aprInput.value = 0; aprInput.disabled = true; } }
-    else { if (aprInput){ aprInput.disabled = false; } }
-  });
-
-  clearQuotesBtn?.addEventListener('click', ()=>{
-    if (confirm('Tüm kayıtlı planlar silinsin mi?')) localStorage.setItem('quotes','[]');
-    renderSavedList();
-  });
-
-  saveQuoteBtn?.addEventListener('click', ()=>{
-    const cur = currencySel?.value || 'GBP';
-    const { salePrice, down, apr, term } = collectValues();
-    if (!salePrice || !term){ alert('Kaydetmek için Satış Fiyatı ve Vade gerekli.'); return; }
+  if (saveQuoteBtn) saveQuoteBtn.addEventListener('click', function(){
+    const cur = currencySel.value;
+    const vals = collectValues();
+    if (!vals.salePrice || !vals.term){ alert('Kaydetmek için Satış Fiyatı ve Vade gerekli.'); return; }
     const q = {
       date: todayStr(),
-      preparedBy: preparedByInp?.value||'',
-      customer: customerName?.value||'',
-      phone: customerPhone?.value||'',
-      email: customerEmail?.value||'',
-      property: propertyName?.value||'',
-      block: propertyBlock?.value||'',
-      unit: propertyUnit?.value||'',
-      type: propertyType?.value||'',
+      preparedBy: preparedByInp.value||'',
+      customer: customerNameInp.value||'',
+      phone: customerPhoneInp.value||'',
+      email: customerEmailInp.value||'',
+      property: propertyNameInp.value||'',
+      block: propertyBlockInp.value||'',
+      unit: propertyUnitInp.value||'',
+      type: propertyTypeInp.value||'',
       currency: cur,
-      sale: Number(salePrice)||0,
-      down: Number(down)||0,
-      apr: Number(apr)||0,
-      term: Number(term)||0
+      sale: Number(vals.salePrice)||0,
+      down: Number(vals.down)||0,
+      apr: Number(vals.apr)||0,
+      term: Number(vals.term)||0
     };
     const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
   });
 
-  /* =========================
-     SAVED QUOTES LIST
-  ==========================*/
-  function getQuotes(){
-    try{ return JSON.parse(localStorage.getItem('quotes')||'[]'); }catch{ return []; }
-  }
-  function setQuotes(arr){
-    localStorage.setItem('quotes', JSON.stringify(arr));
-    renderSavedList();
-  }
-  function renderSavedList(){
-    if (!savedList) return;
-    const items = getQuotes();
-    savedList.innerHTML = items.length ? '' : '<li class="id">Henüz kayıt yok.</li>';
-    items.forEach((q, idx)=>{
-      const li = document.createElement('li');
-      const left = document.createElement('div');
-      left.innerHTML = `<strong>${q.customer||'—'}</strong> · ${q.property||'—'} <span class="id">(${q.date})</span>`;
-      const right = document.createElement('div'); right.className='actions';
-      const loadBtn = document.createElement('button'); loadBtn.className='btn tiny'; loadBtn.textContent='Yükle';
-      const delBtn = document.createElement('button'); delBtn.className='btn tiny secondary'; delBtn.textContent='Sil';
-      loadBtn.onclick = ()=> loadQuote(idx);
-      delBtn.onclick = ()=> { const arr=getQuotes(); arr.splice(idx,1); setQuotes(arr); };
-      right.appendChild(loadBtn); right.appendChild(delBtn);
-      li.appendChild(left); li.appendChild(right);
-      savedList.appendChild(li);
-    });
-  }
-  function loadQuote(i){
-    const q = getQuotes()[i]; if(!q) return;
-    if (preparedByInp) preparedByInp.value = q.preparedBy||'';
-    if (customerName) customerName.value = q.customer||'';
-    if (customerPhone) customerPhone.value = q.phone||'';
-    if (customerEmail) customerEmail.value = q.email||'';
-    if (propertyName) propertyName.value = q.property||'';
-    if (propertyBlock) propertyBlock.value = q.block||'';
-    if (propertyUnit) propertyUnit.value = q.unit||'';
-    if (propertyType) propertyType.value = q.type||'';
-    localStorage.setItem('preparedBy', preparedByInp?.value||'');
-    if (currencySel) currencySel.value = q.currency||currencySel.value;
-    localStorage.setItem('currency', currencySel?.value||'');
-    renderFields();
-    $('salePrice').value = q.sale||0;
-    $('down').value = q.down||0;
-    $('apr').value = q.apr||0;
-    $('term').value = q.term||0;
-    if (interestFree){ interestFree.checked = (q.apr === 0); }
-    $('apr').disabled = interestFree?.checked || false;
-    updateCurrencyUI();
-    syncMeta();
-    calcBtn?.click();
-  }
+  if (clearQuotesBtn) clearQuotesBtn.addEventListener('click', function(){
+    if (confirm('Tüm kayıtlı planlar silinsin mi?')) setQuotes([]);
+  });
 
   /* =========================
      INIT
-  ==========================*/
+     ========================= */
   (function init(){
-    // currency preference
+    seedUsersIfEmpty();
+    renderLoginUsers();
+
+    if(currentUser()){
+      showApp();
+    }else{
+      showGate();
+    }
+
     const savedCur = localStorage.getItem('currency');
-    if (savedCur && sym[savedCur] && currencySel) currencySel.value = savedCur;
+    if (savedCur && sym[savedCur]) currencySel.value = savedCur;
 
     renderFields();
     updateCurrencyUI();
     syncMeta();
     renderSavedList();
-    populateLoginUsers();
-    populateActiveUser();
+    renderActiveUserSelect();
+
+    if (adminModal) adminModal.addEventListener('click', function(e){
+      if(e.target === adminModal){ hideAdminModal(); }
+    });
   })();
 
 })();
