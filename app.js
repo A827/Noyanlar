@@ -8,9 +8,9 @@
   function applyTheme(mode){
     root.classList.remove('light');
     root.setAttribute('data-theme', mode);
-    if (mode === 'light') { root.classList.add('light'); }
+    if(mode === 'light'){ root.classList.add('light'); }
     localStorage.setItem(THEME_KEY, mode);
-    if (themeToggle){
+    if(themeToggle){
       themeToggle.textContent = mode === 'light' ? '☀️' : (mode === 'dark' ? '🌙' : '🌗');
       themeToggle.title = `Tema: ${mode}`;
     }
@@ -52,6 +52,12 @@
   const metaCustomer = $('metaCustomer');
   const metaProperty = $('metaProperty');
   const metaPrepared = $('metaPrepared');
+
+  // print meta display
+  const printDate = $('printDate');
+  const printCustomer = $('printCustomer');
+  const printProperty = $('printProperty');
+  const printPrepared = $('printPrepared');
 
   // business summary
   const sbSale = $('sbSale');
@@ -123,6 +129,9 @@
     // restore remembered preferences
     preparedByInp.value = localStorage.getItem('preparedBy') || preparedByInp.value || '';
     metaPrepared.textContent = preparedByInp.value || '—';
+
+    // sync print header date immediately
+    if (printDate) printDate.textContent = metaDate.textContent;
   }
 
   function updateCurrencyUI(){
@@ -142,11 +151,11 @@
 
   function buildSchedule(P, r, n, pay){
     let bal = P, rows = [];
-    for (let k=1; k<=n; k++){
+    for(let k=1;k<=n;k++){
       const interest = r===0 ? 0 : bal*r;
       const principal = Math.min(bal, pay - interest);
       bal = Math.max(0, bal - principal);
-      rows.push({ k, pay, bal });
+      rows.push({k, pay, bal});
       if (bal<=0) break;
     }
     return rows;
@@ -267,14 +276,16 @@ Total Interest,${meta.totalInterest}
   function syncMeta(){
     metaDate.textContent = todayStr();
     metaCustomer.textContent = customerNameInp.value.trim() || '—';
-    const propBits = [
-      propertyNameInp.value,
-      propertyBlockInp.value && `Blok ${propertyBlockInp.value}`,
-      propertyUnitInp.value && `No ${propertyUnitInp.value}`,
-      propertyTypeInp.value
-    ].filter(Boolean).join(' • ');
+    const propBits = [propertyNameInp.value, propertyBlockInp.value && `Blok ${propertyBlockInp.value}`, propertyUnitInp.value && `No ${propertyUnitInp.value}`, propertyTypeInp.value]
+      .filter(Boolean).join(' • ');
     metaProperty.textContent = propBits || '—';
     metaPrepared.textContent = preparedByInp.value.trim() || '—';
+
+    // mirror to print header
+    if (printDate)      printDate.textContent      = metaDate.textContent;
+    if (printCustomer)  printCustomer.textContent  = metaCustomer.textContent;
+    if (printProperty)  printProperty.textContent  = metaProperty.textContent;
+    if (printPrepared)  printPrepared.textContent  = metaPrepared.textContent;
   }
 
   // ===== PREFS =====
@@ -297,7 +308,7 @@ Total Interest,${meta.totalInterest}
     const m = Number(compoundSel.value);
     const r = Number(apr||0)/100/m;
 
-    if (n<=0){ summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
+    if(n<=0){ summary.textContent = 'Lütfen geçerli vade (ay) girin.'; return; }
 
     const payment = (r===0) ? P/n : P * r / (1 - Math.pow(1+r,-n));
     const rows = buildSchedule(P, r, n, payment);
@@ -380,10 +391,11 @@ Total Interest,${meta.totalInterest}
   preparedByInp.addEventListener('input', ()=>{
     localStorage.setItem('preparedBy', preparedByInp.value||'');
     metaPrepared.textContent = preparedByInp.value.trim() || '—';
+    if (printPrepared) printPrepared.textContent = metaPrepared.textContent;
   });
   [customerNameInp, customerPhoneInp, customerEmailInp,
    propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp]
-   .forEach(inp=> { if (inp) inp.addEventListener('input', syncMeta); });
+   .forEach(inp=> inp && inp.addEventListener('input', syncMeta));
 
   $('presets')?.addEventListener('click', (e)=>{
     const b = e.target.closest('.chip');
@@ -400,8 +412,7 @@ Total Interest,${meta.totalInterest}
 
   resetBtn.addEventListener('click', ()=>{
     [customerNameInp, customerPhoneInp, customerEmailInp,
-     propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp]
-      .forEach(i=> { if (i) i.value=''; });
+     propertyNameInp, propertyBlockInp, propertyUnitInp, propertyTypeInp].forEach(i=> i && (i.value=''));
     syncMeta();
     renderFields();
   });

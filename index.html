@@ -35,6 +35,22 @@
       <span class="badge" id="currencyBadge">Para Birimi: GBP (£)</span>
     </div>
 
+    <!-- PRINT-ONLY HEADER (for PDF) -->
+    <section class="print-only print-header card">
+      <div class="ph-row">
+        <div class="ph-brand">
+          <div class="brand-title">Noyanlar</div>
+          <div class="brand-sub">Satış Taksit Planı</div>
+        </div>
+        <div class="ph-meta">
+          <div><span>Tarih</span><strong id="printDate">—</strong></div>
+          <div><span>Müşteri</span><strong id="printCustomer">—</strong></div>
+          <div><span>Proje/Daire</span><strong id="printProperty">—</strong></div>
+          <div><span>Hazırlayan</span><strong id="printPrepared">—</strong></div>
+        </div>
+      </div>
+    </section>
+
     <div class="grid">
       <!-- LEFT: FORM -->
       <section class="card form-card">
@@ -174,6 +190,23 @@
         </div>
       </aside>
     </div>
+
+    <!-- PRINT-ONLY FOOTER (signature / contact) -->
+    <section class="print-only print-footer card">
+      <div class="pf-grid">
+        <div>
+          <div class="line"></div>
+          <small>Müşteri İmza</small>
+        </div>
+        <div>
+          <div class="line"></div>
+          <small>Noyanlar Temsilcisi</small>
+        </div>
+      </div>
+      <div class="pf-contact">
+        Tel: +90 392 000 00 00 • <a href="mailto:sales@noyanlar.com">sales@noyanlar.com</a> • noyanlar.com
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
