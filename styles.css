@@ -281,9 +281,110 @@ tbody tr:hover{background:color-mix(in srgb, var(--table-alt) 70%, var(--brand-2
 }
 .modal-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
 .modal-body{ display:grid; gap:12px; }
-.modal-grid{ grid-template-columns:1fr 1fr; }
+.modal-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:900px){ .modal-grid{ grid-template-columns:1fr; } }
 .modal-card{
   background:var(--chip); border:1px solid var(--line); border-radius:12px; padding:12px;
 }
 .saved-list-item{ /* list rows inside modal */ }
+
+/* ===== Admin: User list + editor (NEW) ===== */
+
+/* User list table */
+.user-table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--chip);
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+}
+.user-table th,
+.user-table td{
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  font-size:14px;
+}
+.user-table thead th{
+  background:var(--table-head);
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+.user-table tbody tr:nth-child(odd){ background:var(--table-alt); }
+.user-table .role-badge{
+  display:inline-block; padding:3px 8px; border-radius:999px; font-size:12px;
+  border:1px solid var(--chip-border); background:var(--chip);
+}
+.user-table .role-badge.admin{
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--chip-border));
+  background: color-mix(in srgb, var(--brand) 20%, var(--chip));
+}
+
+/* Inline buttons inside table rows */
+.row-actions{ display:flex; gap:6px; }
+.btn.danger{
+  background:linear-gradient(135deg,#a31218,#6e1318);
+  color:#fff;
+}
+
+/* Editor form panel */
+.user-editor{
+  background:var(--chip);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+}
+.form-row{
+  display:grid; gap:10px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+@media(max-width:720px){ .form-row{ grid-template-columns:1fr; } }
+.form-row .field{ margin-bottom:4px; }
+
+/* Editor header/footer */
+.modal-section-title{
+  margin:0 0 8px 0; font-weight:800; font-size:16px;
+}
+.modal-footer{
+  display:flex; gap:10px; justify-content:flex-end; margin-top:10px;
+}
+
+/* Small chips/pills */
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--chip-border);
+  background:var(--chip);
+  color:var(--ink);
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:12px;
+}
+
+/* Inputs compact variant for dense modal */
+.input-sm{
+  padding:10px 12px !important;
+  border-radius:10px !important;
+}
+
+/* Divider inside modal */
+.modal-hr{
+  border:none; border-top:1px dashed var(--line); margin:10px 0;
+}
+
+/* Make modal scroll nicer */
+.modal::-webkit-scrollbar,
+.user-table::-webkit-scrollbar,
+.table-wrap::-webkit-scrollbar{ width:10px; height:10px; }
+.modal::-webkit-scrollbar-thumb,
+.user-table::-webkit-scrollbar-thumb,
+.table-wrap::-webkit-scrollbar-thumb{
+  background:var(--chip-border);
+  border-radius:999px;
+}
+.modal::-webkit-scrollbar-track,
+.user-table::-webkit-scrollbar-track,
+.table-wrap::-webkit-scrollbar-track{
+  background:transparent;
+}

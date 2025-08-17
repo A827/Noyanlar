@@ -35,73 +35,77 @@
   const $ = (id)=>document.getElementById(id);
 
   // Auth gate
-  const authGate = $('authGate');
-  const loginUser = $('loginUser');     // text input
-  const loginPass = $('loginPass');     // password input
+  const authGate  = $('authGate');
+  const loginUser = $('loginUser');     // username
+  const loginPass = $('loginPass');     // password
   const loginBtn  = $('loginBtn');
   const logoutBtn = $('logoutBtn');
 
   // App shell
   const appHeader = $('appHeader');
-  const appMain = $('appMain');
+  const appMain   = $('appMain');
   const appFooter = $('appFooter');
-  const adminBtn = $('adminBtn');
+  const adminBtn  = $('adminBtn');
 
   // Admin modal
-  const adminModal = $('adminModal');
-  const adminClose = $('adminClose');
-  const usersList = $('usersList');
-  const addUserBtn = $('addUserBtn');
-  const newUserName = $('newUserName');
+  const adminModal   = $('adminModal');
+  const adminClose   = $('adminClose');
+  const usersListBox = $('usersList'); // dynamic content (table + editor)
+
+  // Quick add (left card)
+  const addUserBtn   = $('addUserBtn');
+  const newUserName  = $('newUserName');
   const newUserEmail = $('newUserEmail');
   const newUserPhone = $('newUserPhone');
-  const newUserPass = $('newUserPass');
-  const oldPin = $('oldPin');
-  const newPin = $('newPin');
+  const newUserPass  = $('newUserPass');
+
+  // PIN block
+  const oldPin       = $('oldPin');
+  const newPin       = $('newPin');
   const changePinBtn = $('changePinBtn');
 
   // Calculator UI
-  const inputsDiv = $('inputs');
-  const currencySel = $('currency');
-  const compoundSel = $('compound');
-  const interestFree = $('interestFree');
-  const currencyBadge = $('currencyBadge');
+  const inputsDiv      = $('inputs');
+  const currencySel    = $('currency');
+  const compoundSel    = $('compound');
+  const interestFree   = $('interestFree');
+  const currencyBadge  = $('currencyBadge');
 
-  const preparedByInp = $('preparedBy');
+  const preparedByInp   = $('preparedBy');
   const customerNameInp = $('customerName');
-  const customerPhoneInp = $('customerPhone');
-  const customerEmailInp = $('customerEmail');
+  const customerPhoneInp= $('customerPhone');
+  const customerEmailInp= $('customerEmail');
   const propertyNameInp = $('propertyName');
-  const propertyBlockInp = $('propertyBlock');
+  const propertyBlockInp= $('propertyBlock');
   const propertyUnitInp = $('propertyUnit');
   const propertyTypeInp = $('propertyType');
 
-  const metaDate = $('metaDate');
+  const metaDate     = $('metaDate');
   const metaCustomer = $('metaCustomer');
   const metaProperty = $('metaProperty');
   const metaPrepared = $('metaPrepared');
 
-  const sbSale = $('sbSale');
-  const sbDown = $('sbDown');
-  const sbBalance = $('sbBalance');
-  const sbBalancePlusInterest = $('sbBalancePlusInterest');
+  const sbSale   = $('sbSale');
+  const sbDown   = $('sbDown');
+  const sbBalance= $('sbBalance');
+  const sbBalancePlusInterest= $('sbBalancePlusInterest');
   const sbTotalBurden = $('sbTotalBurden');
 
   const primaryValue = $('primaryValue');
   const loanAmountEl = $('loanAmount');
-  const totalPaid = $('totalPaid');
-  const payoffDate = $('payoffDate');
-  const summary = $('summary');
+  const totalPaid    = $('totalPaid');
+  const payoffDate   = $('payoffDate');
+  const summary      = $('summary');
 
   const scheduleWrap = $('scheduleWrap');
   const scheduleBody = $('schedule');
-  const exportBtn = $('exportBtn');
-  const printBtn = $('printBtn');
-  const calcBtn = $('calcBtn');
-  const resetBtn = $('resetBtn');
+  const exportBtn    = $('exportBtn');
+  const printBtn     = $('printBtn');
+  const calcBtn      = $('calcBtn');
+  const resetBtn     = $('resetBtn');
   const saveQuoteBtn = $('saveQuoteBtn');
   const clearQuotesBtn = $('clearQuotesBtn');
-  const savedList = $('savedList');
+  const savedList    = $('savedList');
 
   if ($('year')) $('year').textContent = new Date().getFullYear();
 
@@ -117,7 +121,7 @@
   /* =========================
      AUTH / USERS (localStorage)
      ========================= */
-  const USERS_KEY = 'noy_users';
+  const USERS_KEY   = 'noy_users';
   const ADMIN_PIN_KEY = 'adminPIN';
   const SESSION_KEY = 'noy_session_user';
 
@@ -146,19 +150,19 @@
   }
   function saveUsers(arr){
     localStorage.setItem(USERS_KEY, JSON.stringify(arr));
+    try{ localStorage.setItem(USERS_KEY+'_ts', String(Date.now())); }catch{}
   }
 
-  // Ensure an admin user + PIN always exist if store is empty or corrupted
   function seedUsersIfEmpty(){
     let users = loadUsers();
     if(users.length === 0){
       users = [{
         id: cryptoRandomId(),
-        name: 'Admin',            // default username
+        name: 'Admin',
         email: 'admin@noyanlar.com',
         phone: '',
         role: 'admin',
-        pass: '1234'              // default password
+        pass: '1234'
       }];
       saveUsers(users);
     }
@@ -180,82 +184,245 @@
   function currentUser(){ return getUserById(getSessionId()); }
   function isAdmin(){ return (currentUser() && currentUser().role === 'admin'); }
 
-  function renderUsersList(){
-    if (!usersList) return;
+  /* =========================
+     ADMIN UI: TABLE + EDITOR
+     ========================= */
+  let selectedUserId = null;
+  // Hide the editor by default; only show when editing or adding
+  let showEditor = false;
+
+  function userTableHTML(users){
+    const rows = users.map(u=>{
+      const badge = u.role === 'admin'
+        ? '<span class="role-badge admin">admin</span>'
+        : '<span class="role-badge">user</span>';
+      return `
+        <tr data-id="${u.id}">
+          <td><strong>${escapeHTML(u.name||'')}</strong><br>
+              <span class="muted" style="font-size:12px">${escapeHTML(u.email||'')}${u.phone? ' • '+escapeHTML(u.phone):''}</span>
+          </td>
+          <td>${badge}</td>
+          <td class="row-actions">
+            <button class="btn tiny" data-act="edit">Düzenle</button>
+            <button class="btn tiny secondary danger" data-act="delete">Sil</button>
+          </td>
+        </tr>`;
+    }).join('');
+    return `
+      <table class="user-table">
+        <thead>
+          <tr><th>Kullanıcı</th><th>Rol</th><th>İşlemler</th></tr>
+        </thead>
+        <tbody>${rows || ''}</tbody>
+      </table>`;
+  }
+
+  function editorHTML(u){
+    const user = u || { id:'', name:'', email:'', phone:'', role:'user', pass:'' };
+    return `
+      <div class="user-editor" id="userEditor" data-id="${user.id||''}">
+        <h4 class="modal-section-title">${user.id ? 'Kullanıcıyı Düzenle' : 'Yeni Kullanıcı'}</h4>
+        <div class="form-row">
+          <div class="field">
+            <label>Ad Soyad</label>
+            <input class="input-sm" id="editName" type="text" value="${escapeAttr(user.name||'')}" placeholder="Ad Soyad">
+          </div>
+          <div class="field">
+            <label>Rol</label>
+            <select class="input-sm" id="editRole">
+              <option value="user" ${user.role!=='admin'?'selected':''}>user</option>
+              <option value="admin" ${user.role==='admin'?'selected':''}>admin</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>E-posta</label>
+            <input class="input-sm" id="editEmail" type="email" value="${escapeAttr(user.email||'')}" placeholder="eposta@ornek.com">
+          </div>
+          <div class="field">
+            <label>Telefon</label>
+            <input class="input-sm" id="editPhone" type="tel" value="${escapeAttr(user.phone||'')}" placeholder="+90 ...">
+          </div>
+          <div class="field">
+            <label>Yeni Şifre (opsiyonel)</label>
+            <input class="input-sm" id="editPass" type="password" placeholder="••••">
+          </div>
+          <div class="field">
+            <label>Doğrulama (admin PIN)</label>
+            <input class="input-sm" id="editPin" type="password" placeholder="****">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn secondary" id="cancelEditBtn">Vazgeç</button>
+          <button class="btn" id="saveEditBtn">${user.id ? 'Kaydet' : 'Ekle'}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderUsersPanel(){
+    if (!usersListBox) return;
     const users = loadUsers();
-    const cur = currentUser();
-    usersList.innerHTML = '';
-    if(users.length === 0){
-      usersList.innerHTML = '<p class="muted">Kayıtlı kullanıcı yok.</p>';
+    const editorUser = selectedUserId ? users.find(u=>u.id===selectedUserId) : null;
+
+    usersListBox.innerHTML = `
+      <div class="modal-card">
+        <h4 class="modal-section-title">Kullanıcılar</h4>
+        ${userTableHTML(users)}
+      </div>
+      ${showEditor ? `<div class="modal-card">${editorHTML(editorUser)}</div>` : ''}
+    `;
+
+    if (showEditor){
+      const editorEl = $('userEditor');
+      if (editorEl){
+        editorEl.scrollIntoView({ behavior:'smooth', block:'start' });
+        const nameEl = $('editName');
+        if (nameEl) { nameEl.focus(); nameEl.select?.(); }
+      }
+    }
+  }
+
+  // Delegated handlers inside modal
+  if (usersListBox){
+    usersListBox.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button');
+      if (!btn) return;
+
+      if (btn.dataset.act === 'edit'){
+        const tr = btn.closest('tr[data-id]');
+        if (!tr) return;
+        selectedUserId = tr.getAttribute('data-id');
+        showEditor = true;
+        renderUsersPanel();
+        return;
+      }
+      if (btn.dataset.act === 'delete'){
+        const tr = btn.closest('tr[data-id]');
+        if (!tr) return;
+        const uid = tr.getAttribute('data-id');
+        requireAdminThen(()=> handleDeleteUser(uid));
+        return;
+      }
+
+      if (btn.id === 'saveEditBtn'){
+        requireAdminThen(handleSaveEditor);
+        return;
+      }
+      if (btn.id === 'cancelEditBtn'){
+        selectedUserId = null;
+        showEditor = false;
+        renderUsersPanel();
+        return;
+      }
+    });
+
+    usersListBox.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter' && e.target.closest('#userEditor')){
+        e.preventDefault();
+        requireAdminThen(handleSaveEditor);
+      }
+    });
+  }
+
+  function handleDeleteUser(uid){
+    const users = loadUsers();
+    const u = users.find(x=>x.id===uid);
+    if(!u) return;
+
+    if (u.role==='admin' && users.filter(x=>x.role==='admin').length<=1){
+      alert('En az bir admin kalmalı.');
       return;
     }
-    const adminCount = users.filter(u => u.role==='admin').length;
+    if(!confirm(`"${u.name}" silinsin mi?`)) return;
 
-    users.forEach(u=>{
-      const row = document.createElement('div');
-      row.className = 'saved-list-item';
-      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin:6px 0;background:var(--chip)';
-      row.innerHTML =
-        '<div>' +
-          '<strong>'+u.name+'</strong> ' + (u.role==='admin' ? '<span class="muted">• Admin</span>' : '') +
-          '<div class="muted" style="font-size:12px">'+(u.email||'')+(u.phone ? ' • '+u.phone : '')+'</div>' +
-        '</div>' +
-        '<div class="actions" style="display:flex;gap:8px">' +
-          '<button class="btn tiny" data-act="edit" data-id="'+u.id+'">Düzenle</button>' +
-          '<button class="btn tiny secondary" data-act="del" data-id="'+u.id+'">Sil</button>' +
-        '</div>';
+    const me = currentUser();
+    const next = users.filter(x=>x.id!==uid);
+    saveUsers(next);
 
-      // Delete
-      row.querySelector('[data-act="del"]').addEventListener('click', ()=>{
-        if(u.role==='admin' && adminCount<=1){
-          alert('En az bir admin kalmalı.');
-          return;
-        }
-        if(cur && cur.id === u.id){
-          if(!confirm('Kendinizi siliyorsunuz. Devam ederseniz oturum kapanacak. Onaylıyor musunuz?')) return;
-        }else{
-          if(!confirm('"'+u.name+'" kullanıcısı silinsin mi?')) return;
-        }
-        const arr = loadUsers().filter(x => x.id!==u.id);
-        saveUsers(arr);
-        renderUsersList();
-        if(cur && cur.id === u.id){
-          handleLogout();
-        }
-      });
+    if (me && me.id === uid) handleLogout();
 
-      // Edit (name/email/phone/pass/role)
-      row.querySelector('[data-act="edit"]').addEventListener('click', ()=>{
-        requireAdminThen(()=>{
-          const name = prompt('Ad Soyad', u.name) || u.name;
-          const email = prompt('E-posta', u.email || '') || u.email || '';
-          const phone = prompt('Telefon', u.phone || '') || u.phone || '';
-          const pass = prompt('Şifre (boş bırak: değişme)', '');
-          const role = prompt('Rol: admin / user', u.role) || u.role;
-          const arr = loadUsers().map(x=>{
-            if (x.id !== u.id) return x;
-            return {
-              id: x.id,
-              name,
-              email,
-              phone,
-              role: (role === 'admin' ? 'admin' : 'user'),
-              pass: pass ? pass : x.pass
-            };
-          });
-          saveUsers(arr);
-          renderUsersList();
-          alert('Kullanıcı güncellendi.');
-        });
-      });
+    if (selectedUserId === uid) selectedUserId = null;
+    renderUsersPanel();
+    alert('Kullanıcı silindi.');
+  }
 
-      usersList.appendChild(row);
-    });
+  function handleSaveEditor(){
+    const id    = ($('#userEditor')||{}).getAttribute?.('data-id') || '';
+    const nameI = ($('#editName') || {}).value?.trim() || '';
+    const roleI = ($('#editRole') || {}).value === 'admin' ? 'admin' : 'user';
+    const emailI= ($('#editEmail')||{}).value?.trim() || '';
+    const phoneI= ($('#editPhone')||{}).value?.trim() || '';
+    const passI = ($('#editPass') || {}).value || '';
+    const pin   = ($('#editPin')  || {}).value || '';
+
+    const pinCur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
+    if (pin !== pinCur){ alert('Admin PIN hatalı.'); return; }
+
+    const users = loadUsers();
+
+    // ADD MODE
+    if (!id){
+      if (!nameI){ alert('Ad Soyad zorunlu.'); return; }
+      if (!passI){ alert('Yeni kullanıcı için şifre zorunlu.'); return; }
+      const dupAdd = users.find(u => u.name.trim().toLowerCase() === nameI.toLowerCase());
+      if (dupAdd){ alert('Bu kullanıcı adı zaten var.'); return; }
+      users.push({ id: cryptoRandomId(), name: nameI, email: emailI, phone: phoneI, role: roleI, pass: passI });
+      saveUsers(users);
+      selectedUserId = null;
+      showEditor = false;
+      renderUsersPanel();
+      alert('Kullanıcı eklendi.');
+      return;
+    }
+
+    // EDIT MODE
+    const idx = users.findIndex(u=>u.id===id);
+    if (idx < 0){ alert('Kullanıcı bulunamadı.'); return; }
+    const prev = users[idx];
+
+    const newName  = nameI  || prev.name;
+    const newEmail = emailI || prev.email || '';
+    const newPhone = phoneI || prev.phone || '';
+    const newRole  = roleI;
+    const newPass  = passI ? passI : prev.pass;
+
+    // Only check duplicates if name actually changed
+    if (newName.trim().toLowerCase() !== (prev.name||'').trim().toLowerCase()){
+      const dup = users.find(u => u.name.trim().toLowerCase() === newName.trim().toLowerCase());
+      if (dup && dup.id !== id){ alert('Bu kullanıcı adı zaten var.'); return; }
+    }
+
+    // Prevent removing the last admin
+    if (prev.role === 'admin' && newRole !== 'admin'){
+      const adminCount = users.filter(u=>u.role==='admin').length;
+      if (adminCount <= 1){ alert('En az bir admin kalmalı.'); return; }
+    }
+
+    users[idx] = { ...prev, name: newName, email: newEmail, phone: newPhone, role: newRole, pass: newPass };
+    saveUsers(users);
+
+    // If current user changed, reflect in UI
+    const me = currentUser();
+    if (me && me.id === id){
+      preparedByInp.value = users[idx].name || '';
+      localStorage.setItem('preparedBy', preparedByInp.value || '');
+      metaPrepared.textContent = preparedByInp.value || '—';
+      if (adminBtn) adminBtn.style.display = (users[idx].role==='admin') ? '' : 'none';
+    }
+
+    selectedUserId = null;
+    showEditor = false;
+    renderUsersPanel();
+    alert('Kullanıcı güncellendi.');
   }
 
   function showAdminModal(){
     if (adminModal) adminModal.classList.add('show');
-    renderUsersList();
+    selectedUserId = null;
+    showEditor = false;
+    renderUsersPanel();
+    const modalBox = adminModal?.querySelector('.modal');
+    if (modalBox) modalBox.scrollTop = 0;
   }
   function hideAdminModal(){
     if (adminModal) adminModal.classList.remove('show');
@@ -269,14 +436,15 @@
     else if(pin !== null){ alert('Hatalı PIN.'); }
   }
 
-  // Gate show/hide
+  /* =========================
+     GATE SHOW/HIDE
+     ========================= */
   function showApp(){
-    if (authGate) authGate.classList.add('hidden');
+    if (authGate)  authGate.classList.add('hidden');
     if (appHeader) appHeader.classList.remove('hidden');
-    if (appMain) appMain.classList.remove('hidden');
+    if (appMain)   appMain.classList.remove('hidden');
     if (appFooter) appFooter.classList.remove('hidden');
 
-    // Set "Hazırlayan" to current user name
     const cu = currentUser();
     if (cu) {
       preparedByInp.value = cu.name || '';
@@ -284,19 +452,18 @@
       metaPrepared.textContent = preparedByInp.value || '—';
     }
 
-    // Hide Admin button for non-admin session
-    if (adminBtn){
-      adminBtn.style.display = isAdmin() ? '' : 'none';
-    }
+    if (adminBtn) adminBtn.style.display = isAdmin() ? '' : 'none';
   }
   function showGate(){
-    if (authGate) authGate.classList.remove('hidden');
+    if (authGate)  authGate.classList.remove('hidden');
     if (appHeader) appHeader.classList.add('hidden');
-    if (appMain) appMain.classList.add('hidden');
+    if (appMain)   appMain.classList.add('hidden');
     if (appFooter) appFooter.classList.add('hidden');
   }
 
-  // Login / Logout
+  /* =========================
+     LOGIN / LOGOUT
+     ========================= */
   function handleLogin(){
     const nameInput = loginUser ? loginUser.value : '';
     const pass = loginPass ? (loginPass.value || '') : '';
@@ -314,26 +481,29 @@
     showGate();
   }
 
-  // Admin actions
+  /* =========================
+     ADMIN ACTION BUTTONS
+     ========================= */
   if (addUserBtn) addUserBtn.addEventListener('click', ()=>{
     requireAdminThen(()=>{
-      const name = (newUserName.value||'').trim();
+      // open editor in create mode, optionally prefill from quick form
+      selectedUserId = null;
+      showEditor = true;
+      renderUsersPanel();
+
+      const name  = (newUserName.value||'').trim();
       const email = (newUserEmail.value||'').trim();
       const phone = (newUserPhone.value||'').trim();
-      const pass = (newUserPass.value||'').trim();
-      if(!name || !pass){ alert('Ad ve şifre zorunlu.'); return; }
-      // prevent duplicate usernames (case-insensitive)
-      const exists = !!getUserByName(name);
-      if (exists){ alert('Bu kullanıcı adı zaten var.'); return; }
-      const users = loadUsers();
-      users.push({ id: cryptoRandomId(), name, email, phone, role:'user', pass });
-      saveUsers(users);
-      newUserName.value = '';
-      newUserEmail.value = '';
-      newUserPhone.value = '';
-      newUserPass.value = '';
-      renderUsersList();
-      alert('Kullanıcı eklendi.');
+      const pass  = (newUserPass.value||'').trim();
+      if (name){
+        const en = $('editName'); if (en) en.value = name;
+        const ee = $('editEmail'); if (ee) ee.value = email;
+        const eph= $('editPhone'); if (eph) eph.value = phone;
+        const ep = $('editPass');  if (ep) ep.value = pass;
+        const pin = $('editPin');  if (pin) pin.focus();
+      }
+      newUserName.value = ''; newUserEmail.value = ''; newUserPhone.value = ''; newUserPass.value = '';
+      const editorEl = $('userEditor'); if (editorEl) editorEl.scrollIntoView({behavior:'smooth', block:'start'});
     });
   });
 
@@ -341,21 +511,29 @@
     requireAdminThen(()=>{
       const cur = localStorage.getItem(ADMIN_PIN_KEY) || '1234';
       if((oldPin.value||'') !== cur){ alert('Mevcut PIN yanlış.'); return; }
-      if(!(newPin.value||'').trim()){ alert('Yeni PIN boş olamaz.'); return; }
-      localStorage.setItem(ADMIN_PIN_KEY, newPin.value.trim());
+      const np = (newPin.value||'').trim();
+      if(!np){ alert('Yeni PIN boş olamaz.'); return; }
+      localStorage.setItem(ADMIN_PIN_KEY, np);
       oldPin.value = '';
       newPin.value = '';
       alert('Admin PIN güncellendi.');
     });
   });
 
-  if (adminBtn) adminBtn.addEventListener('click', ()=>{ requireAdminThen(showAdminModal); });
+  if (adminBtn)  adminBtn.addEventListener('click', ()=>{ requireAdminThen(showAdminModal); });
   if (adminClose) adminClose.addEventListener('click', hideAdminModal);
-  if (adminModal) adminModal.addEventListener('click', (e)=>{ if(e.target === adminModal){ hideAdminModal(); } });
+  if (adminModal) {
+    adminModal.addEventListener('click', (e)=>{ if(e.target === adminModal){ hideAdminModal(); } });
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape' && adminModal.classList.contains('show')) hideAdminModal();
+    });
+  }
 
   // Auth gate buttons
-  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  if (loginBtn)  loginBtn.addEventListener('click', handleLogin);
   if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+  if (loginPass) loginPass.addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleLogin(); });
+  if (loginUser) loginUser.addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleLogin(); });
 
   /* =========================
      CALCULATOR UI RENDER
@@ -401,7 +579,7 @@
   function collectValues(){
     const salePrice = Number((($('salePrice')||{}).value) || 0);
     const down = Number((($('down')||{}).value) || 0);
-    const apr = interestFree.checked ? 0 : Number((($('apr')||{}).value) || 0);
+    const apr  = interestFree.checked ? 0 : Number((($('apr')||{}).value) || 0);
     const term = Number((($('term')||{}).value) || 0);
     return { salePrice, down, apr, term };
   }
@@ -475,14 +653,12 @@
     const totalInstallments = rows.reduce((s,row)=> s + row.pay, 0);
     const totalInterestBurden = (downPay + totalInstallments) - sale;
 
-    // Business summary
     sbSale.textContent = fmt(sale, cur);
     sbDown.textContent = fmt(downPay, cur);
     sbBalance.textContent = fmt(P, cur);
     sbBalancePlusInterest.textContent = fmt(totalInstallments, cur);
     sbTotalBurden.textContent = fmt(totalInterestBurden, cur);
 
-    // Technical summary
     primaryValue.textContent = fmt(payment,cur);
     loanAmountEl.textContent = fmt(P,cur);
     totalPaid.textContent = fmt(totalInstallments,cur);
@@ -492,30 +668,30 @@
 
     summary.textContent = 'Satış '+fmt(sale,cur)+', Peşinat '+fmt(downPay,cur)+' → Kredi '+fmt(P,cur)+', '+rows.length+' ay, APR ~ '+(r*m*100).toFixed(3)+'%.';
 
-    // Table
     scheduleBody.innerHTML = rows.map(rw =>
       '<tr><td>'+rw.k+'</td><td>'+fmt(rw.pay,cur)+'</td><td>'+fmt(rw.bal,cur)+'</td></tr>'
     ).join('');
     scheduleWrap.style.display = 'block';
 
-    // CSV meta
-    exportBtn.dataset.csv = toCSV(rows, {
-      date: metaDate.textContent || todayStr(),
-      preparedBy: preparedByInp.value || '',
-      customer: customerNameInp.value || '',
-      phone: customerPhoneInp.value || '',
-      email: customerEmailInp.value || '',
-      property: propertyNameInp.value || '',
-      block: propertyBlockInp.value || '',
-      unit: propertyUnitInp.value || '',
-      type: propertyTypeInp.value || '',
-      currency: cur,
-      sale: (sale||0).toFixed(2),
-      down: (downPay||0).toFixed(2),
-      balance: (P||0).toFixed(2),
-      totalInstallments: (totalInstallments||0).toFixed(2),
-      totalInterest: (totalInterestBurden||0).toFixed(2)
-    });
+    if (exportBtn) {
+      exportBtn.dataset.csv = toCSV(rows, {
+        date: metaDate.textContent || todayStr(),
+        preparedBy: preparedByInp.value || '',
+        customer: customerNameInp.value || '',
+        phone: customerPhoneInp.value || '',
+        email: customerEmailInp.value || '',
+        property: propertyNameInp.value || '',
+        block: propertyBlockInp.value || '',
+        unit: propertyUnitInp.value || '',
+        type: propertyTypeInp.value || '',
+        currency: cur,
+        sale: (sale||0).toFixed(2),
+        down: (downPay||0).toFixed(2),
+        balance: (P||0).toFixed(2),
+        totalInstallments: (totalInstallments||0).toFixed(2),
+        totalInterest: (totalInterestBurden||0).toFixed(2)
+      });
+    }
   }
 
   /* =========================
@@ -666,10 +842,12 @@
     const arr = getQuotes(); arr.unshift(q); setQuotes(arr);
   });
 
-  /* Re-render if users change in other tab */
+  /* Cross-tab sync of users */
   window.addEventListener('storage', (ev)=>{
-    if (ev.key === USERS_KEY){
-      if (adminModal && adminModal.classList.contains('show')) renderUsersList();
+    if (ev.key === USERS_KEY || ev.key === USERS_KEY+'_ts'){
+      if (adminModal && adminModal.classList.contains('show')) renderUsersPanel();
+      const me = currentUser();
+      if (me && !getUserById(me.id)) handleLogout();
     }
   });
 
@@ -677,10 +855,8 @@
      INIT
      ========================= */
   (function init(){
-    // Seed default Admin if empty (fixes first load on Vercel)
     seedUsersIfEmpty();
 
-    // If session exists show app, else gate
     if(currentUser()){
       showApp();
     }else{
@@ -695,4 +871,15 @@
     syncMeta();
     renderSavedList();
   })();
+
+  /* =========================
+     UTIL
+     ========================= */
+  function escapeHTML(s){
+    return String(s||'').replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[m]));
+  }
+  function escapeAttr(s){ return escapeHTML(s); }
+
 })();

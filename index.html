@@ -8,22 +8,15 @@
   <meta name="theme-color" content="#8b1c23" />
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Auth gate (lightweight, uses existing variables) */
-    .gate {
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      background:var(--app,#0b1220); z-index:100; padding:24px;
-    }
-    .gate .panel {
-      width:min(560px, 96%); background:var(--card,#0f172a); color:var(--ink,#eef2f8);
-      border:1px solid var(--line,#243244); border-radius:16px; padding:20px 20px 16px;
-      box-shadow:0 24px 80px rgba(0,0,0,.45);
-    }
-    .gate .panel h1 { margin:0 0 4px; font-size:22px }
-    .gate .panel p { margin:0 0 16px; color:var(--muted,#9aa3b2) }
-    .gate .row { display:grid; grid-template-columns:1fr; gap:12px; margin:12px 0 16px }
-    .gate .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px }
-    .gate .small { font-size:12px; color:var(--muted,#9aa3b2) }
-    .hidden { display:none !important; }
+    /* Lightweight login gate styling (uses existing tokens) */
+    .gate{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:100; padding:24px}
+    .gate .panel{width:min(560px,96%); background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px; padding:20px 20px 16px; box-shadow:0 24px 80px rgba(0,0,0,.45)}
+    .gate .panel h1{margin:0 0 4px; font-size:22px}
+    .gate .panel p{margin:0 0 16px; color:var(--muted)}
+    .gate .row{display:grid; grid-template-columns:1fr; gap:12px; margin:12px 0 16px}
+    .gate .actions{display:flex; gap:10px; justify-content:flex-end; margin-top:6px}
+    .gate .small{font-size:12px; color:var(--muted)}
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
@@ -35,7 +28,7 @@
       <div class="row">
         <div class="field">
           <label for="loginUser">Kullanıcı Adı</label>
-          <input id="loginUser" type="text" placeholder="Örn. Admin" />
+          <input id="loginUser" type="text" placeholder="Örn. admin" />
         </div>
         <div class="field">
           <label for="loginPass">Şifre</label>
@@ -235,12 +228,13 @@
       </header>
 
       <div class="modal-body">
-        <div class="grid-2 modal-grid">
+        <div class="modal-grid">
+          <!-- Create User -->
           <div class="modal-card">
             <h4>Yeni Kullanıcı Ekle</h4>
             <div class="field">
-              <label>Ad Soyad</label>
-              <input id="newUserName" type="text" placeholder="Ad Soyad">
+              <label>Ad / Kullanıcı Adı</label>
+              <input id="newUserName" type="text" placeholder="Örn. coskun">
             </div>
             <div class="field">
               <label>E-posta (opsiyonel)</label>
@@ -251,12 +245,20 @@
               <input id="newUserPhone" type="tel" placeholder="+90 ...">
             </div>
             <div class="field">
+              <label>Rol</label>
+              <select id="newUserRole">
+                <option value="user" selected>Kullanıcı</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="field">
               <label>Şifre</label>
               <input id="newUserPass" type="password" placeholder="••••">
             </div>
             <button id="addUserBtn" class="btn">Ekle</button>
           </div>
 
+          <!-- Admin PIN -->
           <div class="modal-card">
             <h4>Admin PIN</h4>
             <div class="field">
@@ -270,8 +272,42 @@
             <button id="changePinBtn" class="btn secondary">PIN Değiştir</button>
             <p class="muted" style="margin-top:8px">Not: Basit demo amaçlıdır (localStorage).</p>
           </div>
+
+          <!-- Edit User (single page) -->
+          <div class="modal-card" id="editUserCard" style="display:none">
+            <h4>Kullanıcıyı Düzenle</h4>
+            <input type="hidden" id="editUserId" />
+            <div class="field">
+              <label>Ad / Kullanıcı Adı</label>
+              <input id="editUserName" type="text" placeholder="kullanıcı">
+            </div>
+            <div class="field">
+              <label>E-posta</label>
+              <input id="editUserEmail" type="email" placeholder="eposta@ornek.com">
+            </div>
+            <div class="field">
+              <label>Telefon</label>
+              <input id="editUserPhone" type="tel" placeholder="+90 ...">
+            </div>
+            <div class="field">
+              <label>Rol</label>
+              <select id="editUserRole">
+                <option value="user">Kullanıcı</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Yeni Şifre (boş: değiştirme)</label>
+              <input id="editUserPass" type="password" placeholder="••••">
+            </div>
+            <div class="actions" style="justify-content:flex-start">
+              <button id="saveUserBtn" class="btn">Kaydet</button>
+              <button id="cancelEditBtn" class="btn secondary">İptal</button>
+            </div>
+          </div>
         </div>
 
+        <h4 style="margin-top:18px">Kullanıcılar</h4>
         <div class="list" id="usersList"></div>
       </div>
     </div>
