@@ -1,4 +1,3 @@
-// functions/api/debug/users.js
 export async function onRequestGet({ env }) {
   try {
     if (!env.DB) {
@@ -17,7 +16,7 @@ export async function onRequestGet({ env }) {
     return new Response(JSON.stringify({
       ok: true,
       count: count?.c ?? 0,
-      users: rows?.results ?? rows,   // D1 can return {results:[]}
+      users: rows?.results ?? rows,
       schema: pragma?.results ?? pragma
     }), { headers: { "content-type": "application/json" }});
   } catch (e) {
