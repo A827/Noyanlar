@@ -84,10 +84,6 @@
   const clearQuotesBtn = $('clearQuotesBtn');
   const savedList = $('savedList');
 
-  // chart
-  const chartCanvas = $('chart');
-  const ctx = chartCanvas.getContext('2d');
-
   // ===== HELPERS =====
   const sym = { GBP:'£', EUR:'€', USD:'$' };
   const fmt = (v, cur='GBP') =>
@@ -183,43 +179,6 @@ Total Interest,${meta.totalInterest}
     const header = 'Period,Payment,Balance\n';
     const lines = rows.map(r=>[r.k, r.pay.toFixed(2), r.bal.toFixed(2)].join(','));
     return top + header + lines.join('\n');
-  }
-
-  function drawChart(rows, payment){
-    const W = chartCanvas.width, H = chartCanvas.height;
-    ctx.clearRect(0,0,W,H);
-    if (!rows.length) return;
-
-    const maxBal = Math.max(...rows.map(r=>r.bal).concat(rows[0].bal));
-    const pad = 24;
-    const toX = i => pad + (i/rows.length) * (W - 2*pad);
-    const toY = v => H - pad - (v/maxBal) * (H - 2*pad);
-
-    // axes
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--line').trim() || '#293650';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(pad, H-pad); ctx.lineTo(W-pad, H-pad); ctx.stroke();
-
-    // balance line
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--brand-2').trim() || '#caa46a';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(toX(0), toY(rows[0].bal || 0));
-    rows.forEach((r,i)=>{ ctx.lineTo(toX(i+1), toY(r.bal)); });
-    ctx.stroke();
-
-    // payment flat line
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#8b1c23';
-    ctx.setLineDash([6,4]);
-    const yPay = H - pad - (payment/maxBal) * (H - 2*pad);
-    ctx.beginPath(); ctx.moveTo(pad, yPay); ctx.lineTo(W-pad, yPay); ctx.stroke();
-    ctx.setLineDash([]);
-
-    // labels
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#9aa3b2';
-    ctx.font = '12px system-ui';
-    ctx.fillText('Bakiye', pad+6, toY(rows[0].bal||0)-8);
-    ctx.fillText('Taksit', W-pad-50, yPay-6);
   }
 
   // ===== PERSISTENCE (Saved quotes) =====
@@ -340,9 +299,6 @@ Total Interest,${meta.totalInterest}
       <td>${fmt(rw.bal,cur)}</td>
     </tr>`).join('');
     scheduleWrap.style.display = 'block';
-
-    // Chart
-    drawChart([{bal:P}, ...rows], payment);
 
     // CSV meta
     exportBtn.dataset.csv = toCSV(rows, {
