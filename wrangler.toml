@@ -1,4 +1,0 @@
-[[d1_databases]]
-binding = "DB"            # <-- must be DB
-database_name = "noy-db"  # (or whatever you created)
-database_id   = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
